@@ -29,7 +29,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ote-${{ matrix.os }}
+          name: kapsel-${{ matrix.os }}
           path: |
             build/*.zip
             build/*.tar.gz
