@@ -35,6 +35,33 @@ The manifest tells the agent:
 - the active protector
 - the available tool surface
 
+## Client Setup
+
+OTE can generate and install MCP client config for:
+
+- `claude`
+- `cursor`
+- `vscode`
+- `windsurf`
+- `custom`
+
+Useful commands:
+
+```bash
+ote mcp config
+ote mcp install claude
+ote mcp install cursor
+ote mcp install vscode
+ote mcp install windsurf
+ote mcp install --config ./mcp.json
+ote mcp install --print
+ote mcp doctor
+```
+
+`ote mcp config` prints a ready-to-copy JSON snippet.
+`ote mcp install` merges only `mcpServers.ote`, leaving the rest of the file intact.
+`ote mcp doctor` validates the local executable, project root, config, and manifest.
+
 ## Tools
 
 The MCP server exposes these tools:
@@ -107,6 +134,26 @@ On Unix-like systems, the command is usually the local binary path:
 }
 ```
 
+## Target Paths
+
+The install command uses a client-specific file path.
+
+- `claude`
+  - Claude Desktop has a newer extension-driven flow; the JSON path below covers the legacy local config layout and the OTE installer flow.
+  - Windows: `%APPDATA%\\Claude\\claude_desktop_config.json`
+  - macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+  - Linux: `~/.config/Claude/claude_desktop_config.json`
+- `cursor`
+  - `~/.cursor/mcp.json`
+- `vscode`
+  - `<project>/.vscode/mcp.json`
+- `windsurf`
+  - `~/.codeium/windsurf/mcp_config.json`
+- `custom`
+  - use `--config <path>`
+
+These paths are chosen to match the common official client layouts and the current OTE installer behavior.
+
 ## Recommended Flow For Agents
 
 1. read `ote mcp manifest`
@@ -122,4 +169,3 @@ On Unix-like systems, the command is usually the local binary path:
 - decrypted payloads
 - direct config writes
 - bypass of path policy
-

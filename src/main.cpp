@@ -1,4 +1,5 @@
 #include "ote/app.hpp"
+#include "ote/platform.hpp"
 
 #include <filesystem>
 #include <string>
@@ -7,9 +8,9 @@
 int main(int argc, char** argv) {
     ote::AppOptions options;
     options.cwd = std::filesystem::current_path();
+    options.executable = ote::executable_path();
     for (int i = 1; i < argc; ++i) {
         options.args.emplace_back(argv[i]);
     }
     return ote::run_app(options);
 }
-

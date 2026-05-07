@@ -1,6 +1,6 @@
 # OTE Release
 
-OTE 1.0.2 is meant to ship as a cross-platform package with documentation, MCP support, and Layers.
+OTE 1.0.2 is meant to ship as a cross-platform package with documentation, MCP support, Layers, install helpers, and update tooling.
 
 ## Build
 
@@ -39,7 +39,12 @@ Before tagging:
 - `ote --doctor`
 - `ote --validate`
 - `ote --status`
+- `ote --putpath`
+- `ote update`
 - `ote mcp manifest`
+- `ote mcp config`
+- `ote mcp install <target>`
+- `ote mcp doctor`
 - `ote mcp serve`
 
 ## Security Note

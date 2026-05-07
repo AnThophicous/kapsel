@@ -9,10 +9,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(ote_core STATIC
     src/config.cpp
     src/api.cpp
+    src/json.cpp
     src/layers.cpp
     src/platform.cpp
     src/terminal.cpp
     src/mcp.cpp
+    src/mcp_client.cpp
     src/runtime.cpp
     src/secret.cpp
 )

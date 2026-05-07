@@ -24,6 +24,7 @@ struct CommandPlan {
     std::string command;
     std::filesystem::path working_directory;
     std::vector<std::string> allowed_env;
+    std::vector<std::pair<std::string, std::string>> extra_env;
     std::string execution_mode;
     bool sandboxed = true;
 };

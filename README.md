@@ -1,81 +1,166 @@
 # OTE
 
-OTE means One Time Execution.
+**One Time Execution**
 
-OTE is a local secret store and command broker built for AI-assisted tooling.
-It is designed to replace the unsafe parts of `.env` workflows without ever exposing raw SKs to the agent.
+Stop exposing your `.env` to AI tools.
+OTE is a local secret vault, command broker, MCP server, and `.env` replacement built for AI-assisted development.
 
-## What OTE Does
+It keeps secrets on your machine, keeps the agent out of the vault, and still gives the agent enough structure to do useful work.
 
-- stores secrets locally in protected form
-- returns only redacted secret projections to tooling
-- executes commands through a policy layer, not direct shell passthrough
-- exposes a local MCP server for agent integrations
-- keeps config, runtime state, and vault data inside the project root
+## Why OTE Exists
 
-## Security Model
+Still struggling with AI reading your `.env`?
 
-The core rule is simple: the agent never receives the raw secret value.
+That is the problem OTE is built to solve.
 
-OTE can:
+With OTE, the agent can:
 
-- list secret metadata
-- describe allowed keys and tags
-- choose a command plan
-- run a command through the broker
+- discover redacted secret metadata
+- request a safe execution plan
+- run commands through a local policy layer
+- use MCP without seeing raw secret values
 
-OTE cannot:
+With OTE, the agent cannot:
 
-- expose raw SKs through CLI, API, or MCP
-- skip path policy even in `bypass`
-- let an agent edit `ote-config.config`
+- read raw SKs
+- bypass the local policy model
+- edit the protected config file
+- turn your `.env` into a leak
 
-## Execution Modes
+## What OTE Replaces
 
-- `safe`: allowlisted commands only
-- `permission`: validate first, then ask the user
-- `bypass`: skip the prompt, but keep policy checks
+OTE is designed to replace the fragile parts of classic `.env` workflows:
 
-## Core Commands
+- exposed environment files
+- ad hoc secret copying
+- unsafe shell passthrough
+- agent-visible secrets
+- manual MCP config setup
 
-- `ote --setup`
-- `ote --status`
-- `ote --doctor`
-- `ote --validate`
-- `ote --paths`
-- `ote config show`
-- `ote secret list`
-- `ote secret describe <name>`
-- `ote secret add <name> [--tag <tag>] KEY=VALUE...`
-- `ote bridge manifest [profile]`
-- `ote bridge materialize [profile]`
-- `ote api manifest`
-- `ote api secrets`
-- `ote exec plan <command>`
-- `ote exec run <command>`
-- `ote mcp manifest`
-- `ote mcp serve`
+## Core Value
+
+OTE is built for developers who want:
+
+- AI-friendly tooling
+- local-first secret storage
+- low overhead
+- fast command execution
+- clean DX
+- stronger trust boundaries
+
+## Main Features
+
+- local protected secret storage
+- redacted secret projections
+- policy-checked command execution
+- safe / permission / bypass execution modes
+- stdio MCP server
+- MCP client installer for common tools
+- Layers bridge for Node.js, TypeScript, and Python
+- `.env` migration into managed local secrets
+- automatic config and path helpers
+
+## Common Use Cases
+
+OTE fits teams searching for:
+
+- AI env security
+- dotenv replacement
+- secret exposure prevention
+- local MCP server
+- Claude MCP install
+- Cursor MCP config
+- VS Code MCP config
+- Windsurf MCP config
+- OpenAI Codex MCP setup
+- Node.js secret bridge
+- Python secret bridge
+
+## How It Works
+
+1. run `ote --setup`
+2. migrate an existing `.env` with `ote --migration`
+3. let OTE rewrite the `.env` into a proxy
+4. use `ote bridge env` or `ote bridge run` when the process needs the managed values
+5. use `ote mcp install <target>` to wire a local client
+6. keep raw secrets inside OTE only
+
+The on-disk `.env` becomes a small proxy like this:
+
+```env
+# Managed by OTE
+OTE_PROFILE=prod
+```
 
 ## MCP
 
-OTE ships a stdio MCP server so agents can use it as local tooling.
+OTE ships a local stdio MCP server so agents can use it as tooling without getting direct access to secret values.
 
-- `ote mcp manifest` returns the integration manifest
-- `ote mcp serve` starts the stdio server
-- tools are redacted by design
-- resources expose status, paths, config, and manifest snapshots
+Key commands:
 
-See [docs/mcp.md](docs/mcp.md) and [docs/agent-integration.md](docs/agent-integration.md).
+- `ote mcp manifest`
+- `ote mcp config`
+- `ote mcp install <target>`
+- `ote mcp install --print`
+- `ote mcp install --config <path>`
+- `ote mcp doctor`
+- `ote mcp serve`
 
-## Layout
+Supported install targets:
 
-- `ote-config.example.config` is the tracked example policy file
-- `ote-config.config` is the user-owned policy file
-- `.ote/` stores the local runtime state
-- `.ote/secrets/records/` stores protected secret records
-- `.ote/cache/` stores transient runtime cache
-- `.ote/logs/` stores logs
-- `.ote/layers/` stores layers manifests
+- `claude`
+- `cursor`
+- `vscode`
+- `windsurf`
+- `custom`
+
+`ote mcp install` only updates `mcpServers.ote`.
+It merges safely and leaves existing client config intact.
+
+## Layers
+
+Layers is the bridge that turns `.env` into a managed OTE-backed proxy for trusted application runtimes.
+
+Use it when you want:
+
+- `process.env` to keep working in Node.js
+- `os.environ` to keep working in Python
+- the real source of truth to stay inside OTE
+
+Useful commands:
+
+- `ote bridge manifest [profile]`
+- `ote bridge materialize [profile]`
+- `ote bridge env [profile]`
+- `ote bridge run [--profile <name>] [shell] <command>`
+
+## Security Model
+
+OTE is designed around a single rule:
+
+**the agent never receives raw secret values**
+
+The broker controls:
+
+- command policy
+- path policy
+- execution mode
+- environment filtering
+
+The vault controls:
+
+- protected secret storage
+- secret metadata
+- redacted projection output
+
+## Quick Start
+
+```bash
+ote --setup
+ote --doctor
+ote --migration
+ote mcp doctor
+```
 
 ## Build
 
@@ -83,6 +168,16 @@ See [docs/mcp.md](docs/mcp.md) and [docs/agent-integration.md](docs/agent-integr
 cmake -S . -B build
 cmake --build build
 ```
+
+## Search Keywords
+
+AI env security, dotenv replacement, secret exposure prevention, local secret store, local MCP server, AI tooling security, MCP install, Claude Desktop MCP, Cursor MCP, VS Code MCP, Windsurf MCP, Codex CLI MCP, Node.js secret bridge, Python secret bridge, low overhead secret broker.
+
+## International Terms
+
+- Portuguese: segurança de `.env` para IA, substituto do dotenv, MCP local, proteção de segredo local
+- Spanish: seguridad de `.env` para IA, reemplazo de dotenv, servidor MCP local
+- French: sécurité `.env` pour IA, remplacement de dotenv, serveur MCP local
 
 ## Docs
 

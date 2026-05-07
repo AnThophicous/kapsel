@@ -41,6 +41,20 @@ That keeps application code simple:
 - `os.environ` still works in Python
 - the real source of truth stays in OTE
 
+For local process launch, OTE can also inject the bridge directly:
+
+```bash
+ote bridge env
+ote bridge run --profile prod node server.js
+ote bridge run --profile prod python app.py
+```
+
+Use `ote bridge env` when you need a shell-friendly dump of the managed environment.
+Use `ote bridge run` when OTE should launch the child process with the bridge already applied.
+
+On first use, both commands will migrate a local `.env` automatically if the matching secret does not exist yet.
+After that, the `.env` file becomes the managed proxy and the real values stay inside OTE.
+
 ## Node.js
 
 Install the package:
@@ -85,3 +99,14 @@ If `ote` is not on `PATH`, pass `binary_path` or set `OTE_BINARY`.
 
 The agent should never be given direct access to the secret payload.
 The bridge is only for trusted local application runtime.
+
+## Proxy Model
+
+After migration, the on-disk `.env` becomes a tiny proxy:
+
+```env
+# Managed by OTE
+OTE_PROFILE=prod
+```
+
+At runtime, the bridge resolves the profile, materializes the protected values, and injects them into the child process without exposing raw secret material to the agent.

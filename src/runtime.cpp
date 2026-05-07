@@ -134,8 +134,36 @@ bool is_safe_allowed_env(const std::string& name) {
     });
 }
 
+bool is_safe_extra_env_name(const std::string& name) {
+    return is_safe_allowed_env(name);
+}
+
 std::vector<std::string> default_allowed_env() {
     return { "PATH", "SYSTEMROOT", "WINDIR", "HOME", "USERPROFILE", "TMP", "TEMP" };
+}
+
+std::vector<std::pair<std::string, std::string>> collect_extra_env(const CommandPlan& plan) {
+    return plan.extra_env;
+}
+
+std::vector<std::pair<std::string, std::string>> collect_allowed_env(const CommandPlan& plan) {
+    std::vector<std::pair<std::string, std::string>> env;
+    for (const std::string& name : plan.allowed_env) {
+        if (const char* value = std::getenv(name.c_str())) {
+            env.emplace_back(name, value);
+        }
+    }
+    for (const auto& entry : collect_extra_env(plan)) {
+        auto it = std::find_if(env.begin(), env.end(), [&](const auto& existing) {
+            return existing.first == entry.first;
+        });
+        if (it != env.end()) {
+            it->second = entry.second;
+        } else {
+            env.push_back(entry);
+        }
+    }
+    return env;
 }
 
 bool path_within_prefix(const std::filesystem::path& root, const std::filesystem::path& child) {
@@ -312,14 +340,10 @@ public:
         }
 
         std::string environment_block;
-        for (const std::string& name : plan.allowed_env) {
-            const char* value = std::getenv(name.c_str());
-            if (value == nullptr) {
-                continue;
-            }
-            environment_block.append(name);
+        for (const auto& entry : collect_allowed_env(plan)) {
+            environment_block.append(entry.first);
             environment_block.push_back('=');
-            environment_block.append(value);
+            environment_block.append(entry.second);
             environment_block.push_back('\0');
         }
         environment_block.push_back('\0');
@@ -406,6 +430,10 @@ public:
         }
 
         if (pid == 0) {
+            clearenv();
+            for (const auto& entry : collect_allowed_env(plan)) {
+                setenv(entry.first.c_str(), entry.second.c_str(), 1);
+            }
             dup2(stdout_pipe[1], STDOUT_FILENO);
             dup2(stdout_pipe[1], STDERR_FILENO);
             close(stdout_pipe[0]);
@@ -487,6 +515,13 @@ bool ProcessBroker::validate_command(const CommandPlan& plan, std::string& error
     for (const std::string& name : plan.allowed_env) {
         if (!is_safe_allowed_env(name)) {
             error = "invalid allowed env entry";
+            return false;
+        }
+    }
+
+    for (const auto& entry : plan.extra_env) {
+        if (!is_safe_extra_env_name(entry.first)) {
+            error = "invalid extra env entry";
             return false;
         }
     }
