@@ -16,6 +16,7 @@
 #else
 #include <sys/wait.h>
 #include <unistd.h>
+extern char **environ;
 #endif
 
 namespace ote {
@@ -165,6 +166,20 @@ std::vector<std::pair<std::string, std::string>> collect_allowed_env(const Comma
     }
     return env;
 }
+
+#if !defined(_WIN32)
+void reset_child_environment() {
+    for (char** env = environ; env != nullptr && *env != nullptr; ++env) {
+        const std::string entry(*env);
+        const std::size_t pos = entry.find('=');
+        if (pos == std::string::npos) {
+            continue;
+        }
+        const std::string name = entry.substr(0, pos);
+        unsetenv(name.c_str());
+    }
+}
+#endif
 
 bool path_within_prefix(const std::filesystem::path& root, const std::filesystem::path& child) {
     std::error_code ec;
@@ -430,7 +445,7 @@ public:
         }
 
         if (pid == 0) {
-            clearenv();
+            reset_child_environment();
             for (const auto& entry : collect_allowed_env(plan)) {
                 setenv(entry.first.c_str(), entry.second.c_str(), 1);
             }
