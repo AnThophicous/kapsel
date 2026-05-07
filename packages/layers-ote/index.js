@@ -36,7 +36,7 @@ function resolveBinaryPath(options = {}) {
   if (process.env.OTE_BINARY) {
     return process.env.OTE_BINARY;
   }
-  return process.platform === "win32" ? "ote.exe" : "ote";
+  return process.platform === "win32" ? "kapsel.exe" : "kapsel";
 }
 
 function materialize(profile, cwd = process.cwd(), options = {}) {

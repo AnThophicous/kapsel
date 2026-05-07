@@ -36,35 +36,36 @@ void print_help(const std::filesystem::path& cwd) {
     print_banner(cwd);
     std::cout << "\n";
     std::cout << colorize("Usage:", "33") << "\n";
-    std::cout << "  " << colorize("ote --setup", "32") << "\n";
-    std::cout << "  " << colorize("ote --status", "32") << "\n";
-    std::cout << "  " << colorize("ote --doctor", "32") << "\n";
-    std::cout << "  " << colorize("ote --validate", "32") << "\n";
-    std::cout << "  " << colorize("ote --paths", "32") << "\n";
-    std::cout << "  " << colorize("ote --putpath", "32") << "\n";
-    std::cout << "  " << colorize("ote update", "32") << "\n";
-    std::cout << "  " << colorize("ote --migration [--profile <name>] [.env path]", "32") << "\n";
-    std::cout << "  " << colorize("ote config show", "32") << "\n";
-    std::cout << "  " << colorize("ote secret list", "32") << "\n";
-    std::cout << "  " << colorize("ote secret describe <name>", "32") << "\n";
-    std::cout << "  " << colorize("ote secret add <name> [--tag <tag>] KEY=VALUE...", "32") << "\n";
-    std::cout << "  " << colorize("ote bridge manifest [profile]", "32") << "\n";
-    std::cout << "  " << colorize("ote bridge materialize [profile]", "32") << "\n";
-    std::cout << "  " << colorize("ote bridge env [profile]", "32") << "\n";
-    std::cout << "  " << colorize("ote bridge run [--profile <name>] [shell] <command>", "32") << "\n";
-    std::cout << "  " << colorize("ote api manifest", "32") << "\n";
-    std::cout << "  " << colorize("ote api secrets", "32") << "\n";
-    std::cout << "  " << colorize("ote exec plan <command>", "32") << "\n";
-    std::cout << "  " << colorize("ote exec run <command>", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp manifest", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp config", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp install <target>", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp install --print", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp install --config <path>", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp doctor", "32") << "\n";
-    std::cout << "  " << colorize("ote mcp serve", "32") << "\n";
-    std::cout << "  " << colorize("ote --help", "32") << "\n";
-    std::cout << "  " << colorize("ote --version", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --setup", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --status", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --doctor", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --validate", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --paths", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --putpath", "32") << "\n";
+    std::cout << "  " << colorize("kapsel update", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --migration [--profile <name>] [.env path]", "32") << "\n";
+    std::cout << "  " << colorize("kapsel config show", "32") << "\n";
+    std::cout << "  " << colorize("kapsel secret list", "32") << "\n";
+    std::cout << "  " << colorize("kapsel secret describe <name>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel secret add <name> [--tag <tag>] KEY=VALUE...", "32") << "\n";
+    std::cout << "  " << colorize("kapsel bridge manifest [profile]", "32") << "\n";
+    std::cout << "  " << colorize("kapsel bridge materialize [profile]", "32") << "\n";
+    std::cout << "  " << colorize("kapsel bridge env [profile]", "32") << "\n";
+    std::cout << "  " << colorize("kapsel bridge run [--profile <name>] [shell] <command>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel api manifest", "32") << "\n";
+    std::cout << "  " << colorize("kapsel api secrets", "32") << "\n";
+    std::cout << "  " << colorize("kapsel exec plan <command>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel exec run <command>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel policy check <command>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp manifest", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp config", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp install <target>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp install --print", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp install --config <path>", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp doctor", "32") << "\n";
+    std::cout << "  " << colorize("kapsel mcp serve", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --help", "32") << "\n";
+    std::cout << "  " << colorize("kapsel --version", "32") << "\n";
 }
 
 void print_paths(const std::filesystem::path& cwd) {
@@ -84,7 +85,7 @@ void print_status(const std::filesystem::path& cwd) {
     std::string error;
     ConfigValidation validation;
 
-    std::cout << colorize("OTE status", "36") << "\n";
+    std::cout << colorize("Kapsel status", "36") << "\n";
     std::cout << colorize("Path:", "33") << " " << cwd.string() << "\n";
     std::cout << colorize("Platform:", "33") << " " << platform_name() << "\n";
     std::cout << colorize("Architecture:", "33") << " " << architecture_name() << "\n";
@@ -265,10 +266,16 @@ void run_bridge_command(const std::filesystem::path& cwd, const std::vector<std:
 
     plan.extra_env = std::move(overlay);
 
+    const CommandAssessment assessment = assess_command_policy(plan);
     CommandResult result;
     if (!ProcessBroker::backend().run(plan, result, error)) {
         std::cerr << "bridge run failed: " << error << "\n";
         return;
+    }
+
+    std::string audit_error;
+    if (!append_audit_entry(cwd, plan, assessment, result, audit_error)) {
+        std::cerr << "audit warning: " << audit_error << "\n";
     }
 
     if (!result.output.empty()) {
@@ -285,7 +292,7 @@ void print_doctor(const std::filesystem::path& cwd) {
     std::string error;
     ConfigValidation validation;
 
-    std::cout << colorize("OTE doctor", "36") << "\n";
+    std::cout << colorize("Kapsel doctor", "36") << "\n";
     std::cout << colorize("Version:", "33") << " " << OTE_VERSION << "\n";
     std::cout << colorize("Platform:", "33") << " " << platform_name() << "\n";
     std::cout << colorize("Architecture:", "33") << " " << architecture_name() << "\n";
@@ -468,7 +475,7 @@ bool run_mcp_install(const AppOptions& options) {
     request.command_path = exe;
     request.cwd = options.cwd;
     request.config_path = config_path;
-    request.server_name = "ote";
+    request.server_name = "kapsel";
 
     std::string error;
     std::string message;
@@ -511,7 +518,7 @@ bool putpath(const std::filesystem::path& dir, std::string& message, std::string
     const std::wstring current_path = current;
     if (current_path.find(needle) != std::wstring::npos) {
         RegCloseKey(key);
-        message = "PATH already contains OTE directory\n";
+        message = "PATH already contains Kapsel directory\n";
         return true;
     }
 
@@ -534,7 +541,7 @@ bool putpath(const std::filesystem::path& dir, std::string& message, std::string
 #else
     const std::filesystem::path profile = user_home_path() / ".profile";
     std::ostringstream block;
-    block << "\n# OTE PATH START\n";
+    block << "\n# KAPSEL PATH START\n";
     block << "case \":$PATH:\" in\n";
     block << "  *\":";
     block << dir.string();
@@ -543,12 +550,12 @@ bool putpath(const std::filesystem::path& dir, std::string& message, std::string
     block << dir.string();
     block << ":$PATH\" ;;\n";
     block << "esac\n";
-    block << "# OTE PATH END\n";
+    block << "# KAPSEL PATH END\n";
 
     std::string existing;
     if (std::filesystem::exists(profile)) {
         existing = read_all(profile);
-        if (existing.find("# OTE PATH START") != std::string::npos) {
+        if (existing.find("# KAPSEL PATH START") != std::string::npos) {
             message = "PATH profile already configured\n";
             return true;
         }
@@ -626,14 +633,14 @@ bool version_is_newer(const std::string& current, const std::string& latest) {
 }
 
 std::string github_repo() {
-    return "AnThophicous/ote";
+    return "AnThophicous/kapsel";
 }
 
 std::string latest_release_json(std::string& error) {
 #if defined(_WIN32)
     const std::string command =
         "powershell -NoProfile -Command \"$ProgressPreference='SilentlyContinue'; "
-        "$headers=@{'User-Agent'='ote'}; "
+        "$headers=@{'User-Agent'='kapsel'}; "
         "(Invoke-RestMethod -Headers $headers -Uri 'https://api.github.com/repos/" + github_repo() + "/releases/latest') | ConvertTo-Json -Depth 8\"";
     std::string output = run_capture(command);
     if (output.empty()) {
@@ -641,7 +648,7 @@ std::string latest_release_json(std::string& error) {
     }
     return output;
 #else
-    const std::string command = "curl -fsSL -H 'User-Agent: ote' https://api.github.com/repos/" + github_repo() + "/releases/latest";
+    const std::string command = "curl -fsSL -H 'User-Agent: kapsel' https://api.github.com/repos/" + github_repo() + "/releases/latest";
     std::string output = run_capture(command);
     if (output.empty()) {
         error = "unable to query GitHub releases";
@@ -652,11 +659,11 @@ std::string latest_release_json(std::string& error) {
 
 std::string release_asset_name(const std::string& version) {
 #if defined(_WIN32)
-    return "ote-" + version + "-win64.zip";
+    return "kapsel-" + version + "-win64.zip";
 #elif defined(__APPLE__)
-    return "ote-" + version + "-macos-" + architecture_name() + ".tar.gz";
+    return "kapsel-" + version + "-macos-" + architecture_name() + ".tar.gz";
 #else
-    return "ote-" + version + "-linux-" + architecture_name() + ".tar.gz";
+    return "kapsel-" + version + "-linux-" + architecture_name() + ".tar.gz";
 #endif
 }
 
@@ -673,9 +680,9 @@ bool download_release_asset(const std::string& url, const std::filesystem::path&
 #if defined(_WIN32)
     const std::string command =
         "powershell -NoProfile -Command \"$ProgressPreference='SilentlyContinue'; "
-        "Invoke-WebRequest -UseBasicParsing -Headers @{'User-Agent'='ote'} -Uri '" + url + "' -OutFile '" + output_path.string() + "'\"";
+        "Invoke-WebRequest -UseBasicParsing -Headers @{'User-Agent'='kapsel'} -Uri '" + url + "' -OutFile '" + output_path.string() + "'\"";
 #else
-    const std::string command = "curl -fL -H 'User-Agent: ote' -o '" + output_path.string() + "' '" + url + "'";
+    const std::string command = "curl -fL -H 'User-Agent: kapsel' -o '" + output_path.string() + "' '" + url + "'";
 #endif
     const std::string output = run_capture(command);
     if (!std::filesystem::exists(output_path)) {
@@ -740,7 +747,7 @@ bool perform_update(const AppOptions& options) {
     }
 
     if (!version_is_newer(OTE_VERSION, latest_version)) {
-        std::cout << "OTE is already up to date (" << OTE_VERSION << ")\n";
+        std::cout << "Kapsel is already up to date (" << OTE_VERSION << ")\n";
         return true;
     }
 
@@ -828,23 +835,53 @@ bool confirm_permission(const CommandPlan& plan) {
 }
 
 void print_plan(const std::filesystem::path& cwd, const std::string& shell, const std::string& command) {
+    Config config;
+    std::string config_error;
+    (void)ConfigStore::load(cwd, config, config_error);
+
     CommandPlan plan;
+    plan.shell = shell.empty() ? (config.runtime.default_shell.empty() ? default_shell() : config.runtime.default_shell) : shell;
+    plan.command = command;
+    plan.working_directory = cwd;
+    plan.allowed_env = config.sandbox.allowed_env.empty() ? ProcessBroker::default_allowed_env() : config.sandbox.allowed_env;
+    plan.execution_mode = config.runtime.execution_mode.empty() ? "safe" : config.runtime.execution_mode;
+    plan.sandboxed = true;
+
     std::string error;
-    if (!ProcessBroker::build_plan(cwd, shell, command, plan, error)) {
-        std::cerr << "plan failed: " << error << "\n";
-        return;
-    }
+    const bool plan_valid = ProcessBroker::build_plan(cwd, shell, command, plan, error);
+    const CommandAssessment assessment = assess_command_policy(plan);
 
     std::ostringstream out;
     out << "{";
-    out << "\"shell\":\"" << escape_json(shell) << "\",";
+    out << "\"valid\":" << (plan_valid ? "true" : "false") << ",";
+    if (!plan_valid) {
+        out << "\"error\":\"" << escape_json(error) << "\",";
+    }
+    out << "\"shell\":\"" << escape_json(plan.shell) << "\",";
     out << "\"command\":\"" << escape_json(command) << "\",";
     out << "\"working_directory\":\"" << escape_json(cwd.string()) << "\",";
     out << "\"execution_mode\":\"" << escape_json(plan.execution_mode) << "\",";
     out << "\"sandboxed\":" << (plan.sandboxed ? "true" : "false") << ",";
-    out << "\"allowed_env\":" << to_json_array(plan.allowed_env);
+    out << "\"allowed_env\":" << to_json_array(plan.allowed_env) << ",";
+    out << "\"policy\":" << command_assessment_json(assessment);
     out << "}";
     std::cout << out.str() << "\n";
+}
+
+void print_policy_check(const std::filesystem::path& cwd, const std::string& shell, const std::string& command) {
+    Config config;
+    std::string config_error;
+    (void)ConfigStore::load(cwd, config, config_error);
+
+    CommandPlan plan;
+    plan.shell = shell.empty() ? (config.runtime.default_shell.empty() ? default_shell() : config.runtime.default_shell) : shell;
+    plan.command = command;
+    plan.working_directory = cwd;
+    plan.allowed_env = config.sandbox.allowed_env.empty() ? ProcessBroker::default_allowed_env() : config.sandbox.allowed_env;
+    plan.execution_mode = config.runtime.execution_mode.empty() ? "safe" : config.runtime.execution_mode;
+    plan.sandboxed = true;
+
+    std::cout << command_assessment_json(assess_command_policy(plan)) << "\n";
 }
 
 void run_plan(const std::filesystem::path& cwd, const std::string& shell, const std::string& command) {
@@ -860,10 +897,16 @@ void run_plan(const std::filesystem::path& cwd, const std::string& shell, const 
         return;
     }
 
+    const CommandAssessment assessment = assess_command_policy(plan);
     CommandResult result;
     if (!ProcessBroker::backend().run(plan, result, error)) {
         std::cerr << "run failed: " << error << "\n";
         return;
+    }
+
+    std::string audit_error;
+    if (!append_audit_entry(cwd, plan, assessment, result, audit_error)) {
+        std::cerr << "audit warning: " << audit_error << "\n";
     }
 
     if (!result.output.empty()) {
@@ -989,7 +1032,7 @@ int run_app(const AppOptions& options) {
     }
 
     if (command == "--version" || command == "-v" || command == "version") {
-        std::cout << "ote " << OTE_VERSION << "\n";
+        std::cout << "kapsel " << OTE_VERSION << "\n";
         return 0;
     }
 
@@ -1044,7 +1087,7 @@ int run_app(const AppOptions& options) {
 
     if (command == "secret") {
         if (options.args.size() < 2) {
-            std::cerr << "Use ote secret list|describe|add\n";
+            std::cerr << "Use kapsel secret list|describe|add\n";
             return 1;
         }
 
@@ -1074,7 +1117,7 @@ int run_app(const AppOptions& options) {
 
     if (command == "bridge") {
         if (options.args.size() < 2) {
-            std::cerr << "Use ote bridge manifest|materialize|env|run\n";
+            std::cerr << "Use kapsel bridge manifest|materialize|env|run\n";
             return 1;
         }
 
@@ -1105,7 +1148,7 @@ int run_app(const AppOptions& options) {
 
     if (command == "api") {
         if (options.args.size() < 2) {
-            std::cerr << "Use ote api manifest|secrets\n";
+            std::cerr << "Use kapsel api manifest|secrets\n";
             return 1;
         }
 
@@ -1126,7 +1169,7 @@ int run_app(const AppOptions& options) {
 
     if (command == "config") {
         if (options.args.size() < 2) {
-            std::cerr << "Use ote config show\n";
+            std::cerr << "Use kapsel config show\n";
             return 1;
         }
         if (options.args[1] == "show") {
@@ -1139,7 +1182,7 @@ int run_app(const AppOptions& options) {
 
     if (command == "exec") {
         if (options.args.size() < 3) {
-            std::cerr << "Use ote exec plan|run [shell] <command>\n";
+            std::cerr << "Use kapsel exec plan|run [shell] <command>\n";
             return 1;
         }
 
@@ -1171,9 +1214,38 @@ int run_app(const AppOptions& options) {
         return 1;
     }
 
+    if (command == "policy") {
+        if (options.args.size() < 3) {
+            std::cerr << "Use kapsel policy check [shell] <command>\n";
+            return 1;
+        }
+
+        const std::string& subcommand = options.args[1];
+        if (subcommand != "check") {
+            std::cerr << "Unknown policy command: " << subcommand << "\n";
+            return 1;
+        }
+
+        std::string shell = default_shell();
+        std::size_t command_index = 2;
+        if (options.args.size() >= 4 && (options.args[2] == "powershell" || options.args[2] == "cmd" || options.args[2] == "bash" || options.args[2] == "sh")) {
+            shell = options.args[2];
+            command_index = 3;
+        }
+
+        const std::string payload = join_args(options.args, command_index);
+        if (payload.empty()) {
+            std::cerr << "policy check requires a command\n";
+            return 1;
+        }
+
+        print_policy_check(options.cwd, shell, payload);
+        return 0;
+    }
+
     if (command == "mcp") {
         if (options.args.size() < 2) {
-            std::cerr << "Use ote mcp manifest|config|install|doctor|serve\n";
+            std::cerr << "Use kapsel mcp manifest|config|install|doctor|serve\n";
             return 1;
         }
 
@@ -1226,7 +1298,7 @@ int run_app(const AppOptions& options) {
                 return 1;
             }
 
-            std::cout << "OTE already initialized at " << options.cwd.string() << "\n";
+            std::cout << "Kapsel already initialized at " << options.cwd.string() << "\n";
             return 0;
         }
 
@@ -1234,12 +1306,12 @@ int run_app(const AppOptions& options) {
             std::cerr << "setup failed: " << error << "\n";
             return 1;
         }
-        std::cout << "OTE initialized at " << options.cwd.string() << "\n";
+        std::cout << "Kapsel initialized at " << options.cwd.string() << "\n";
         return 0;
     }
 
     std::cerr << "Unknown command: " << command << "\n";
-    std::cerr << "Use ote --help\n";
+        std::cerr << "Use kapsel --help\n";
     return 1;
 }
 

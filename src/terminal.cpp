@@ -136,6 +136,6 @@ std::string ascii_banner(const std::filesystem::path& root) {
         " ╚═════╝    ╚═╝   ╚══════╝\n"
         "                          \n";
 
-    return colorize(art, "36;1") + colorize("One Time Execution\n", "37;1");
+    return colorize(art, "36;1") + colorize("Kapsel\n", "37;1");
 }
 }

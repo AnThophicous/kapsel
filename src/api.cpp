@@ -39,7 +39,7 @@ std::string secret_projection_json(const SecretProjection& secret) {
 std::string mcp_manifest_json(const std::filesystem::path& root, const std::string& platform_name_value, const std::string& architecture_name_value, const std::string& protector_name) {
     std::ostringstream out;
     out << "{";
-    out << "\"name\":\"ote\",";
+    out << "\"name\":\"kapsel\",";
     out << "\"root\":\"" << escape_json(root.string()) << "\",";
     out << "\"platform\":\"" << escape_json(platform_name_value) << "\",";
     out << "\"architecture\":\"" << escape_json(architecture_name_value) << "\",";
@@ -50,8 +50,9 @@ std::string mcp_manifest_json(const std::filesystem::path& root, const std::stri
     out << "{\"name\":\"secret.add\",\"mode\":\"trusted\",\"description\":\"Store a protected secret locally\"},";
     out << "{\"name\":\"exec.plan\",\"mode\":\"readonly\",\"description\":\"Build a policy-checked execution plan\"},";
     out << "{\"name\":\"exec.run\",\"mode\":\"trusted\",\"description\":\"Run a command through the broker\"},";
+    out << "{\"name\":\"policy.check\",\"mode\":\"readonly\",\"description\":\"Inspect command risk before execution\"},";
     out << "{\"name\":\"status\",\"mode\":\"readonly\",\"description\":\"Return runtime status\"},";
-    out << "{\"name\":\"paths\",\"mode\":\"readonly\",\"description\":\"Return local OTE paths\"},";
+    out << "{\"name\":\"paths\",\"mode\":\"readonly\",\"description\":\"Return local Kapsel paths\"},";
     out << "{\"name\":\"config.show\",\"mode\":\"readonly\",\"description\":\"Return the active config snapshot\"}";
     out << "]";
     out << "}";

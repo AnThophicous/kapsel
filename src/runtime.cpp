@@ -2,10 +2,13 @@
 
 #include "ote/config.hpp"
 
+#include <chrono>
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
+#include <ctime>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -126,6 +129,80 @@ bool contains_dangerous_verb(const std::string& command) {
     return false;
 }
 
+bool contains_high_risk_install_pattern(const std::string& command) {
+    const std::string normalized = to_lower_ascii(command);
+    static const std::vector<std::string> patterns = {
+        "invoke-webrequest",
+        "irm ",
+        "iex",
+        "invoke-expression",
+        "curl ",
+        "wget ",
+        "npm install",
+        "pnpm add",
+        "yarn add",
+        "pip install",
+        "uv pip install",
+        "dotnet tool install",
+        "cargo install",
+        "git clone",
+        "git pull",
+        "nuget install"
+    };
+
+    for (const std::string& pattern : patterns) {
+        if (normalized.find(pattern) != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool contains_remote_script_pipeline(const std::string& command) {
+    const std::string normalized = to_lower_ascii(command);
+    static const std::vector<std::string> patterns = {
+        "| iex",
+        "| invoke-expression",
+        "| sh",
+        "| bash",
+        "curl http",
+        "curl https",
+        "wget http",
+        "wget https"
+    };
+
+    for (const std::string& pattern : patterns) {
+        if (normalized.find(pattern) != std::string::npos) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void append_reason(std::vector<std::string>& reasons, const std::string& reason) {
+    if (std::find(reasons.begin(), reasons.end(), reason) == reasons.end()) {
+        reasons.push_back(reason);
+    }
+}
+
+std::string escape_json(const std::string& value) {
+    std::string out;
+    out.reserve(value.size() + 8);
+    for (char c : value) {
+        switch (c) {
+        case '\\': out += "\\\\"; break;
+        case '"': out += "\\\""; break;
+        case '\n': out += "\\n"; break;
+        case '\r': out += "\\r"; break;
+        case '\t': out += "\\t"; break;
+        default: out += c; break;
+        }
+    }
+    return out;
+}
+
 bool is_safe_allowed_env(const std::string& name) {
     if (name.empty()) {
         return false;
@@ -165,6 +242,159 @@ std::vector<std::pair<std::string, std::string>> collect_allowed_env(const Comma
         }
     }
     return env;
+}
+
+std::string escape_json(const std::string& value);
+
+std::string current_timestamp() {
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t raw = std::chrono::system_clock::to_time_t(now);
+    std::tm tm {};
+#if defined(_WIN32)
+    localtime_s(&tm, &raw);
+#else
+    localtime_r(&raw, &tm);
+#endif
+    char buffer[32];
+    if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%S%z", &tm) == 0) {
+        return "unknown";
+    }
+    return buffer;
+}
+
+std::string current_date_stamp() {
+    const auto now = std::chrono::system_clock::now();
+    const std::time_t raw = std::chrono::system_clock::to_time_t(now);
+    std::tm tm {};
+#if defined(_WIN32)
+    localtime_s(&tm, &raw);
+#else
+    localtime_r(&raw, &tm);
+#endif
+    char buffer[16];
+    if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%d", &tm) == 0) {
+        return "unknown";
+    }
+    return buffer;
+}
+
+unsigned long process_identifier() {
+#if defined(_WIN32)
+    return static_cast<unsigned long>(GetCurrentProcessId());
+#else
+    return static_cast<unsigned long>(getpid());
+#endif
+}
+
+std::string json_array(const std::vector<std::string>& values) {
+    std::ostringstream out;
+    out << "[";
+    for (std::size_t i = 0; i < values.size(); ++i) {
+        if (i > 0) {
+            out << ",";
+        }
+        out << "\"" << escape_json(values[i]) << "\"";
+    }
+    out << "]";
+    return out.str();
+}
+
+} // anonymous namespace
+
+CommandAssessment assess_command_policy(const CommandPlan& plan) {
+    CommandAssessment assessment;
+    assessment.risk = "low";
+
+    if (contains_blocked_sequence(plan.command)) {
+        assessment.risk = "critical";
+        assessment.blocked = true;
+        append_reason(assessment.reasons, "blocked syntax");
+    }
+
+    if (contains_dangerous_verb(plan.command)) {
+        assessment.risk = "critical";
+        assessment.blocked = true;
+        append_reason(assessment.reasons, "destructive verb");
+    }
+
+    if (contains_remote_script_pipeline(plan.command)) {
+        assessment.risk = "critical";
+        assessment.blocked = true;
+        append_reason(assessment.reasons, "remote script pipeline");
+    }
+
+    if (contains_high_risk_install_pattern(plan.command)) {
+        if (assessment.risk != "critical") {
+            assessment.risk = "high";
+        }
+        append_reason(assessment.reasons, "networked install or fetch");
+    }
+
+    if (plan.execution_mode == "permission") {
+        if (assessment.risk == "low") {
+            assessment.risk = "medium";
+        }
+        append_reason(assessment.reasons, "interactive approval required");
+    } else if (plan.execution_mode == "bypass" && assessment.risk == "low") {
+        assessment.risk = "medium";
+        append_reason(assessment.reasons, "approval bypassed");
+    }
+
+    if (assessment.risk == "low" && !is_safe_mode_command(plan.command)) {
+        assessment.risk = "medium";
+        append_reason(assessment.reasons, "not in safe allowlist");
+    }
+
+    return assessment;
+}
+
+std::string command_assessment_json(const CommandAssessment& assessment) {
+    std::ostringstream out;
+    out << "{";
+    out << "\"risk\":\"" << escape_json(assessment.risk) << "\",";
+    out << "\"blocked\":" << (assessment.blocked ? "true" : "false") << ",";
+    out << "\"reasons\":" << json_array(assessment.reasons);
+    out << "}";
+    return out.str();
+}
+
+bool append_audit_entry(const std::filesystem::path& root, const CommandPlan& plan, const CommandAssessment& assessment, const CommandResult& result, std::string& error) {
+    std::error_code ec;
+    const std::filesystem::path log_dir = ConfigStore::logs_dir(root) / current_date_stamp();
+    std::filesystem::create_directories(log_dir, ec);
+    if (ec) {
+        error = "unable to create audit log directory";
+        return false;
+    }
+
+    const std::filesystem::path log_file = log_dir / ("run-" + std::to_string(process_identifier()) + ".jsonl");
+    std::ofstream file(log_file, std::ios::binary | std::ios::app);
+    if (!file) {
+        error = "unable to open audit log";
+        return false;
+    }
+
+    std::ostringstream entry;
+    entry << "{";
+    entry << "\"time\":\"" << escape_json(current_timestamp()) << "\",";
+    entry << "\"command\":\"" << escape_json(plan.command) << "\",";
+    entry << "\"shell\":\"" << escape_json(plan.shell) << "\",";
+    entry << "\"cwd\":\"" << escape_json(plan.working_directory.string()) << "\",";
+    entry << "\"exit_code\":" << result.exit_code << ",";
+    entry << "\"risk\":\"" << escape_json(assessment.risk) << "\",";
+    entry << "\"blocked\":" << (assessment.blocked ? "true" : "false") << ",";
+    entry << "\"reasons\":" << json_array(assessment.reasons) << ",";
+    entry << "\"files_changed\":[],";
+    entry << "\"network\":[]";
+    entry << "}";
+
+    file << entry.str() << "\n";
+    if (!file.good()) {
+        error = "unable to write audit log";
+        return false;
+    }
+
+    return true;
 }
 
 #if !defined(_WIN32)
@@ -479,8 +709,6 @@ public:
     }
 };
 
-}
-
 bool ProcessBroker::resolve_shell(const std::string& shell, std::string& resolved) {
     if (shell.empty()) {
         return false;
@@ -517,8 +745,21 @@ bool ProcessBroker::validate_command(const CommandPlan& plan, std::string& error
         return false;
     }
 
-    if (contains_dangerous_verb(plan.command)) {
-        error = "command uses a blocked destructive verb";
+    const CommandAssessment assessment = assess_command_policy(plan);
+    if (assessment.blocked) {
+        if (std::find(assessment.reasons.begin(), assessment.reasons.end(), "remote script pipeline") != assessment.reasons.end()) {
+            error = "command uses a blocked remote script pipeline";
+            return false;
+        }
+        if (std::find(assessment.reasons.begin(), assessment.reasons.end(), "destructive verb") != assessment.reasons.end()) {
+            error = "command uses a blocked destructive verb";
+            return false;
+        }
+        if (std::find(assessment.reasons.begin(), assessment.reasons.end(), "blocked syntax") != assessment.reasons.end()) {
+            error = "command contains blocked syntax";
+            return false;
+        }
+        error = "command blocked by policy";
         return false;
     }
 

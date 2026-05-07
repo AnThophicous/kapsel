@@ -161,7 +161,7 @@ std::string escape_json(const std::string& value) {
 
 std::string proxy_env_text(const std::string& profile) {
     std::ostringstream out;
-    out << "# Managed by OTE\n";
+    out << "# Managed by Kapsel\n";
     out << "OTE_PROFILE=" << profile << "\n";
     return out.str();
 }
@@ -216,7 +216,7 @@ bool migrate_layers(const std::filesystem::path& root, const LayerMigrationReque
     manifest_text << "\"source\":\"" << escape_json(source.string()) << "\",";
     manifest_text << "\"secret_name\":\"" << escape_json(secret_name) << "\",";
     manifest_text << "\"imported_count\":" << draft.values.size() << ",";
-    manifest_text << "\"managed_by\":\"OTE\"";
+    manifest_text << "\"managed_by\":\"Kapsel\"";
     manifest_text << "}";
 
     if (!write_text(manifest, manifest_text.str(), error)) {

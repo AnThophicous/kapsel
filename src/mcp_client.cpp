@@ -221,7 +221,7 @@ std::string mcp_target_display_name(const std::string& target) {
 
 bool install_mcp_config(const McpInstallRequest& request, std::string& error, std::string& installed_message) {
     if (!std::filesystem::exists(request.command_path)) {
-        error = "OTE executable not found";
+        error = "Kapsel executable not found";
         return false;
     }
 
@@ -274,7 +274,7 @@ bool install_mcp_config(const McpInstallRequest& request, std::string& error, st
     }
 
     std::ostringstream out;
-    out << "OTE MCP installed for " << display_name_for_target(request.target) << ".\n\n";
+    out << "Kapsel MCP installed for " << display_name_for_target(request.target) << ".\n\n";
     out << "Server:\n";
     out << "  name: " << request.server_name << "\n";
     out << "  command: " << request.command_path.string() << "\n";
@@ -320,7 +320,7 @@ bool mcp_doctor(const std::filesystem::path& cwd, const std::filesystem::path& c
     report = out.str();
 
     if (!std::filesystem::exists(command_path)) {
-        error = "OTE executable not found";
+        error = "Kapsel executable not found";
         return false;
     }
 

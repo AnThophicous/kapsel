@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "layers-ote"
-version = "1.0.1"
-description = "Layer bridge for OTE-backed .env proxy workflows."
+name = "layers-kapsel"
+version = "1.1.0"
+description = "Layer bridge for Kapsel-backed .env proxy workflows."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["ote", "layers", "env", "secret", "bridge", "dotenv"]
+keywords = ["kapsel", "layers", "env", "secret", "bridge", "dotenv"]
 
 [tool.setuptools]
 packages = ["layers_ote"]

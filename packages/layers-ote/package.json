@@ -1,12 +1,12 @@
 {
-  "name": "layers-ote",
-  "version": "1.0.1",
-  "description": "Layer bridge for OTE-backed .env proxy workflows.",
+  "name": "layers-kapsel",
+  "version": "1.1.0",
+  "description": "Layer bridge for Kapsel-backed .env proxy workflows.",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
   "keywords": [
-    "ote",
+    "kapsel",
     "layers",
     "env",
     "secret",

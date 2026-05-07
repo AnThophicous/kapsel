@@ -29,7 +29,7 @@ def _resolve_binary_path(binary_path: str | None = None) -> str:
     env_binary = os.environ.get("OTE_BINARY")
     if env_binary:
         return env_binary
-    return "ote.exe" if os.name == "nt" else "ote"
+    return "kapsel.exe" if os.name == "nt" else "kapsel"
 
 
 def materialize(profile: str, cwd: str | None = None, binary_path: str | None = None) -> Dict[str, str]:

