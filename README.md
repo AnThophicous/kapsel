@@ -47,6 +47,8 @@ OTE cannot:
 - `ote secret list`
 - `ote secret describe <name>`
 - `ote secret add <name> [--tag <tag>] KEY=VALUE...`
+- `ote bridge manifest [profile]`
+- `ote bridge materialize [profile]`
 - `ote api manifest`
 - `ote api secrets`
 - `ote exec plan <command>`
@@ -73,6 +75,7 @@ See [docs/mcp.md](docs/mcp.md) and [docs/agent-integration.md](docs/agent-integr
 - `.ote/secrets/records/` stores protected secret records
 - `.ote/cache/` stores transient runtime cache
 - `.ote/logs/` stores logs
+- `.ote/layers/` stores layers manifests
 
 ## Build
 
@@ -86,6 +89,7 @@ cmake --build build
 - [docs/architecture.md](docs/architecture.md)
 - [docs/security.md](docs/security.md)
 - [docs/mcp.md](docs/mcp.md)
+- [docs/layers.md](docs/layers.md)
 - [docs/agent-integration.md](docs/agent-integration.md)
 - [docs/release.md](docs/release.md)
 - [docs/publishing.md](docs/publishing.md)

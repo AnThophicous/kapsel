@@ -358,6 +358,12 @@ bool ensure_directories(const std::filesystem::path& root, std::string& error) {
         return false;
     }
 
+    std::filesystem::create_directories(ConfigStore::layers_dir(root), ec);
+    if (ec) {
+        error = "unable to create layers directory";
+        return false;
+    }
+
     return true;
 }
 
@@ -385,6 +391,10 @@ std::filesystem::path ConfigStore::cache_dir(const std::filesystem::path& root) 
 
 std::filesystem::path ConfigStore::logs_dir(const std::filesystem::path& root) {
     return store_dir(root) / "logs";
+}
+
+std::filesystem::path ConfigStore::layers_dir(const std::filesystem::path& root) {
+    return store_dir(root) / "layers";
 }
 
 std::filesystem::path ConfigStore::lock_file(const std::filesystem::path& root) {

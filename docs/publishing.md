@@ -1,6 +1,6 @@
 # OTE Publishing
 
-This document describes the final publish flow for OTE 1.0.0.
+This document describes the final publish flow for OTE 1.0.1.
 
 ## Goal
 
@@ -44,4 +44,3 @@ For each uploaded package, publish a SHA256 checksum alongside the artifact name
 ## Final Rule
 
 Raw SKs never go into the repo, the release artifacts, or the MCP surface.
-

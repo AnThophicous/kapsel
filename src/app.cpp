@@ -2,12 +2,15 @@
 
 #include "ote/api.hpp"
 #include "ote/config.hpp"
+#include "ote/layers.hpp"
 #include "ote/mcp.hpp"
 #include "ote/platform.hpp"
 #include "ote/runtime.hpp"
 #include "ote/secrets.hpp"
+#include "ote/terminal.hpp"
 
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -16,35 +19,34 @@
 namespace ote {
 namespace {
 
-void print_banner() {
-    std::cout << "   ____  ______ ______\n";
-    std::cout << "  / __ \\/_  __//_  __/\n";
-    std::cout << " / / / / / /    / /   \n";
-    std::cout << "/_/ /_/ /_/    /_/    \n";
-    std::cout << "One Time Execution\n";
+void print_banner(const std::filesystem::path& cwd) {
+    std::cout << colorize(ascii_banner(cwd), "36");
 }
 
-void print_help() {
-    print_banner();
+void print_help(const std::filesystem::path& cwd) {
+    print_banner(cwd);
     std::cout << "\n";
-    std::cout << "Usage:\n";
-    std::cout << "  ote --setup\n";
-    std::cout << "  ote --status\n";
-    std::cout << "  ote --doctor\n";
-    std::cout << "  ote --validate\n";
-    std::cout << "  ote --paths\n";
-    std::cout << "  ote config show\n";
-    std::cout << "  ote secret list\n";
-    std::cout << "  ote secret describe <name>\n";
-    std::cout << "  ote secret add <name> [--tag <tag>] KEY=VALUE...\n";
-    std::cout << "  ote api manifest\n";
-    std::cout << "  ote api secrets\n";
-    std::cout << "  ote exec plan <command>\n";
-    std::cout << "  ote exec run <command>\n";
-    std::cout << "  ote mcp manifest\n";
-    std::cout << "  ote mcp serve\n";
-    std::cout << "  ote --help\n";
-    std::cout << "  ote --version\n";
+    std::cout << colorize("Usage:", "33") << "\n";
+    std::cout << "  " << colorize("ote --setup", "32") << "\n";
+    std::cout << "  " << colorize("ote --status", "32") << "\n";
+    std::cout << "  " << colorize("ote --doctor", "32") << "\n";
+    std::cout << "  " << colorize("ote --validate", "32") << "\n";
+    std::cout << "  " << colorize("ote --paths", "32") << "\n";
+    std::cout << "  " << colorize("ote --migration [--profile <name>] [.env path]", "32") << "\n";
+    std::cout << "  " << colorize("ote config show", "32") << "\n";
+    std::cout << "  " << colorize("ote secret list", "32") << "\n";
+    std::cout << "  " << colorize("ote secret describe <name>", "32") << "\n";
+    std::cout << "  " << colorize("ote secret add <name> [--tag <tag>] KEY=VALUE...", "32") << "\n";
+    std::cout << "  " << colorize("ote bridge manifest [profile]", "32") << "\n";
+    std::cout << "  " << colorize("ote bridge materialize [profile]", "32") << "\n";
+    std::cout << "  " << colorize("ote api manifest", "32") << "\n";
+    std::cout << "  " << colorize("ote api secrets", "32") << "\n";
+    std::cout << "  " << colorize("ote exec plan <command>", "32") << "\n";
+    std::cout << "  " << colorize("ote exec run <command>", "32") << "\n";
+    std::cout << "  " << colorize("ote mcp manifest", "32") << "\n";
+    std::cout << "  " << colorize("ote mcp serve", "32") << "\n";
+    std::cout << "  " << colorize("ote --help", "32") << "\n";
+    std::cout << "  " << colorize("ote --version", "32") << "\n";
 }
 
 void print_paths(const std::filesystem::path& cwd) {
@@ -55,6 +57,7 @@ void print_paths(const std::filesystem::path& cwd) {
     std::cout << "State: " << ConfigStore::state_dir(cwd).string() << "\n";
     std::cout << "Cache: " << ConfigStore::cache_dir(cwd).string() << "\n";
     std::cout << "Logs: " << ConfigStore::logs_dir(cwd).string() << "\n";
+    std::cout << "Layers: " << ConfigStore::layers_dir(cwd).string() << "\n";
     std::cout << "Lock: " << ConfigStore::lock_file(cwd).string() << "\n";
 }
 
@@ -63,26 +66,81 @@ void print_status(const std::filesystem::path& cwd) {
     std::string error;
     ConfigValidation validation;
 
-    std::cout << "OTE status\n";
-    std::cout << "Path: " << cwd.string() << "\n";
-    std::cout << "Platform: " << platform_name() << "\n";
-    std::cout << "Architecture: " << architecture_name() << "\n";
-    std::cout << "Default shell: " << default_shell() << "\n";
-    std::cout << "Broker: " << ProcessBroker::backend().name() << "\n";
-    std::cout << "Config: " << (ConfigStore::exists(cwd) ? "present" : "missing") << "\n";
+    std::cout << colorize("OTE status", "36") << "\n";
+    std::cout << colorize("Path:", "33") << " " << cwd.string() << "\n";
+    std::cout << colorize("Platform:", "33") << " " << platform_name() << "\n";
+    std::cout << colorize("Architecture:", "33") << " " << architecture_name() << "\n";
+    std::cout << colorize("Default shell:", "33") << " " << default_shell() << "\n";
+    std::cout << colorize("Broker:", "33") << " " << ProcessBroker::backend().name() << "\n";
+    std::cout << colorize("Config:", "33") << " " << (ConfigStore::exists(cwd) ? "present" : "missing") << "\n";
 
     if (ConfigStore::load(cwd, config, error) && ConfigStore::validate(config, validation) && validation.valid) {
-        std::cout << "Sandbox: " << (config.sandbox.enabled ? "enabled" : "disabled") << "\n";
-        std::cout << "Mode: " << config.runtime.execution_mode << "\n";
-        std::cout << "Cache dir: " << config.runtime.cache_dir << "\n";
+        std::cout << colorize("Sandbox:", "33") << " " << (config.sandbox.enabled ? "enabled" : "disabled") << "\n";
+        std::cout << colorize("Mode:", "33") << " " << config.runtime.execution_mode << "\n";
+        std::cout << colorize("Cache dir:", "33") << " " << config.runtime.cache_dir << "\n";
         return;
     }
 
-    std::cout << "Sandbox: unknown\n";
-    std::cout << "Cache dir: unknown\n";
+    std::cout << colorize("Sandbox:", "33") << " unknown\n";
+    std::cout << colorize("Cache dir:", "33") << " unknown\n";
 }
 
 std::string escape_json(const std::string& value);
+
+std::string read_all(const std::filesystem::path& path) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) {
+        return {};
+    }
+    std::ostringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+std::string extract_profile_from_env(const std::filesystem::path& path) {
+    const std::string text = read_all(path);
+    std::istringstream stream(text);
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        const std::size_t pos = line.find('=');
+        if (pos == std::string::npos || pos == 0) {
+            continue;
+        }
+        const std::string key = line.substr(0, pos);
+        if (key == "OTE_PROFILE") {
+            return line.substr(pos + 1);
+        }
+    }
+    return "prod";
+}
+
+void print_layers_manifest(const std::filesystem::path& cwd, const std::string& profile) {
+    const std::filesystem::path manifest_path = ConfigStore::layers_dir(cwd) / (profile + ".json");
+    const std::string text = read_all(manifest_path);
+    if (!text.empty()) {
+        std::cout << text << "\n";
+        return;
+    }
+
+    std::cout << layers_manifest_json(cwd, profile, (cwd / ".env").string(), "layers-" + profile, 0) << "\n";
+}
+
+void print_layers_materialize(const std::filesystem::path& cwd, const std::string& profile) {
+    std::vector<std::pair<std::string, std::string>> values;
+    std::string error;
+    if (!materialize_layers(cwd, profile, values, error)) {
+        std::cerr << "layers materialize failed: " << error << "\n";
+        return;
+    }
+
+    std::cout << "{";
+    std::cout << "\"profile\":\"" << escape_json(profile) << "\",";
+    std::cout << "\"env\":" << to_json_object(values);
+    std::cout << "}\n";
+}
 
 void print_config_show(const std::filesystem::path& cwd) {
     Config config;
@@ -108,23 +166,23 @@ void print_doctor(const std::filesystem::path& cwd) {
     std::string error;
     ConfigValidation validation;
 
-    std::cout << "OTE doctor\n";
-    std::cout << "Version: " << OTE_VERSION << "\n";
-    std::cout << "Platform: " << platform_name() << "\n";
-    std::cout << "Architecture: " << architecture_name() << "\n";
-    std::cout << "Shell: " << default_shell() << "\n";
-    std::cout << "Broker: " << ProcessBroker::backend().name() << "\n";
-    std::cout << "MCP: available\n";
-    std::cout << "Config present: " << (ConfigStore::exists(cwd) ? "yes" : "no") << "\n";
+    std::cout << colorize("OTE doctor", "36") << "\n";
+    std::cout << colorize("Version:", "33") << " " << OTE_VERSION << "\n";
+    std::cout << colorize("Platform:", "33") << " " << platform_name() << "\n";
+    std::cout << colorize("Architecture:", "33") << " " << architecture_name() << "\n";
+    std::cout << colorize("Shell:", "33") << " " << default_shell() << "\n";
+    std::cout << colorize("Broker:", "33") << " " << ProcessBroker::backend().name() << "\n";
+    std::cout << colorize("MCP:", "33") << " available\n";
+    std::cout << colorize("Config present:", "33") << " " << (ConfigStore::exists(cwd) ? "yes" : "no") << "\n";
     if (ConfigStore::load(cwd, config, error) && ConfigStore::validate(config, validation) && validation.valid) {
-        std::cout << "Config valid: yes\n";
-        std::cout << "Mode: " << config.runtime.execution_mode << "\n";
-        std::cout << "Allowed paths: " << config.sandbox.allowed_paths.size() << "\n";
-        std::cout << "Denied paths: " << config.sandbox.denied_paths.size() << "\n";
+        std::cout << colorize("Config valid:", "33") << " yes\n";
+        std::cout << colorize("Mode:", "33") << " " << config.runtime.execution_mode << "\n";
+        std::cout << colorize("Allowed paths:", "33") << " " << config.sandbox.allowed_paths.size() << "\n";
+        std::cout << colorize("Denied paths:", "33") << " " << config.sandbox.denied_paths.size() << "\n";
     } else {
-        std::cout << "Config valid: no\n";
+        std::cout << colorize("Config valid:", "33") << " no\n";
         if (!error.empty()) {
-            std::cout << "Error: " << error << "\n";
+            std::cout << colorize("Error:", "33") << " " << error << "\n";
         }
     }
 }
@@ -344,18 +402,64 @@ void add_secret(const std::filesystem::path& cwd, const std::vector<std::string>
     std::cout << "secret stored\n";
 }
 
+void run_migration(const std::filesystem::path& cwd, const std::vector<std::string>& args) {
+    std::filesystem::path source = cwd / ".env";
+    std::string profile;
+
+    for (std::size_t i = 1; i < args.size(); ++i) {
+        if (args[i] == "--profile") {
+            if (i + 1 >= args.size()) {
+                std::cerr << "migration failed: missing profile value\n";
+                return;
+            }
+            profile = args[++i];
+            continue;
+        }
+
+        if (!args[i].empty() && args[i][0] != '-') {
+            source = std::filesystem::path(args[i]);
+            if (source.is_relative()) {
+                source = cwd / source;
+            }
+            continue;
+        }
+    }
+
+    if (profile.empty()) {
+        profile = extract_profile_from_env(source);
+    }
+
+    LayerMigrationRequest request;
+    request.source_path = source;
+    request.profile = profile;
+
+    LayerMigrationResult result;
+    std::string error;
+    if (!migrate_layers(cwd, request, result, error)) {
+        std::cerr << "migration failed: " << error << "\n";
+        return;
+    }
+
+    std::cout << "layers migrated\n";
+    std::cout << "profile=" << result.profile << "\n";
+    std::cout << "secret=" << result.secret_name << "\n";
+    std::cout << "source=" << result.source_path.string() << "\n";
+    std::cout << "manifest=" << result.manifest_path.string() << "\n";
+    std::cout << "imported=" << result.imported_count << "\n";
+}
+
 }
 
 int run_app(const AppOptions& options) {
     if (options.args.empty()) {
-        print_help();
+        print_help(options.cwd);
         return 0;
     }
 
     const std::string& command = options.args.front();
 
     if (command == "--help" || command == "-h" || command == "help") {
-        print_help();
+        print_help(options.cwd);
         return 0;
     }
 
@@ -381,6 +485,11 @@ int run_app(const AppOptions& options) {
 
     if (command == "--paths") {
         print_paths(options.cwd);
+        return 0;
+    }
+
+    if (command == "--migration" || command == "migration") {
+        run_migration(options.cwd, options.args);
         return 0;
     }
 
@@ -411,6 +520,27 @@ int run_app(const AppOptions& options) {
         }
 
         std::cerr << "Unknown secret command: " << subcommand << "\n";
+        return 1;
+    }
+
+    if (command == "bridge") {
+        if (options.args.size() < 2) {
+            std::cerr << "Use ote bridge manifest|materialize\n";
+            return 1;
+        }
+
+        const std::string profile = options.args.size() >= 3 ? options.args[2] : extract_profile_from_env(options.cwd / ".env");
+        if (options.args[1] == "manifest") {
+            print_layers_manifest(options.cwd, profile);
+            return 0;
+        }
+
+        if (options.args[1] == "materialize") {
+            print_layers_materialize(options.cwd, profile);
+            return 0;
+        }
+
+        std::cerr << "Unknown bridge command: " << options.args[1] << "\n";
         return 1;
     }
 

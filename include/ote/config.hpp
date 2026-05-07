@@ -38,6 +38,7 @@ public:
     static std::filesystem::path state_dir(const std::filesystem::path& root);
     static std::filesystem::path cache_dir(const std::filesystem::path& root);
     static std::filesystem::path logs_dir(const std::filesystem::path& root);
+    static std::filesystem::path layers_dir(const std::filesystem::path& root);
     static std::filesystem::path lock_file(const std::filesystem::path& root);
 
     static bool exists(const std::filesystem::path& root);

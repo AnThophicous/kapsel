@@ -430,6 +430,42 @@ bool SecretVault::describe(const std::filesystem::path& root, const std::string&
     return load_record(path, secret, payload_hex, error);
 }
 
+bool SecretVault::load_values(const std::filesystem::path& root, const std::string& name, std::vector<std::pair<std::string, std::string>>& values, std::string& error) {
+    const std::filesystem::path path = records_dir(root) / (safe_blob_name(name) + ".secret");
+    if (!std::filesystem::exists(path)) {
+        error = "secret not found";
+        return false;
+    }
+
+    SecretProjection projection;
+    std::string payload_hex;
+    if (!load_record(path, projection, payload_hex, error)) {
+        return false;
+    }
+
+    std::string plaintext;
+    const ISecretProtector& protector = active_secret_protector();
+    if (!protector.unprotect(payload_hex, plaintext, error)) {
+        return false;
+    }
+
+    values.clear();
+    std::istringstream stream(plaintext);
+    std::string line;
+    while (std::getline(stream, line)) {
+        if (!line.empty() && line.back() == '\r') {
+            line.pop_back();
+        }
+        const std::size_t pos = line.find('=');
+        if (pos == std::string::npos || pos == 0) {
+            continue;
+        }
+        values.emplace_back(line.substr(0, pos), line.substr(pos + 1));
+    }
+
+    return true;
+}
+
 bool SecretVault::store(const std::filesystem::path& root, const ISecretProtector& protector, const SecretDraft& draft, std::string& error) {
     if (!protector.supported()) {
         error = "secret protection unavailable";

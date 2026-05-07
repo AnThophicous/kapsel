@@ -1,0 +1,25 @@
+{
+  "name": "layers-ote",
+  "version": "1.0.1",
+  "description": "Layer bridge for OTE-backed .env proxy workflows.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "keywords": [
+    "ote",
+    "layers",
+    "env",
+    "secret",
+    "bridge",
+    "dotenv",
+    "mcp"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

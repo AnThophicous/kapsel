@@ -10,3 +10,10 @@
 - cross-platform build packaging
 - documentation for operators and agents
 
+## 1.0.1
+
+- layers bridge for Node.js, TypeScript, and Python
+- `ote --migration` to convert `.env` into an OTE proxy
+- trusted bridge materialization for local runtimes
+- lower-overhead layout for layers manifests and proxy mode
+- stronger docs for security, integration, and publishing
