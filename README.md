@@ -88,3 +88,4 @@ cmake --build build
 - [docs/mcp.md](docs/mcp.md)
 - [docs/agent-integration.md](docs/agent-integration.md)
 - [docs/release.md](docs/release.md)
+- [docs/publishing.md](docs/publishing.md)
