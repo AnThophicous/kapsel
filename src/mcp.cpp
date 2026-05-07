@@ -528,7 +528,7 @@ int run_mcp_server(const std::filesystem::path& root) {
             std::ostringstream result;
             result << "{";
             result << "\"protocolVersion\":\"2024-11-05\",";
-            result << "\"serverInfo\":{\"name\":\"ote\",\"version\":\"1.0.1\"},";
+            result << "\"serverInfo\":{\"name\":\"ote\",\"version\":\"1.0.2\"},";
             result << "\"capabilities\":{\"tools\":{},\"resources\":{},\"logging\":{}}";
             result << "}";
             response = make_ok_response(id, result.str());

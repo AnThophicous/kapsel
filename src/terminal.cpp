@@ -8,10 +8,38 @@
 
 #if defined(_WIN32)
 #include <windows.h>
+#include <fcntl.h>
+#include <io.h>
 #endif
 
 namespace ote {
 namespace {
+
+void enable_windows_utf8() {
+#if defined(_WIN32)
+    static bool attempted = false;
+    if (attempted) {
+        return;
+    }
+    attempted = true;
+
+    const HANDLE handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (handle != INVALID_HANDLE_VALUE && handle != nullptr) {
+        DWORD mode = 0;
+        if (GetConsoleMode(handle, &mode) != 0) {
+            mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(handle, mode);
+        }
+    }
+
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+
+    if (_isatty(_fileno(stdout)) != 0) {
+        _setmode(_fileno(stdout), _O_BINARY);
+    }
+#endif
+}
 
 bool enable_windows_ansi() {
 #if defined(_WIN32)
@@ -56,7 +84,13 @@ std::string read_file(const std::filesystem::path& path) {
 
 }
 
+void initialize_terminal() {
+    enable_windows_utf8();
+}
+
 bool terminal_supports_color() {
+    initialize_terminal();
+
     static int cached = -1;
     if (cached != -1) {
         return cached == 1;
@@ -86,6 +120,8 @@ std::string colorize(const std::string& text, const char* code) {
 }
 
 std::string ascii_banner(const std::filesystem::path& root) {
+    initialize_terminal();
+
     const std::string banner = read_file(root / "ascii.txt");
     if (!banner.empty()) {
         return banner;

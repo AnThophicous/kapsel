@@ -1,6 +1,6 @@
 # OTE Release
 
-OTE 1.0.1 is meant to ship as a cross-platform package with documentation, MCP support, and Layers.
+OTE 1.0.2 is meant to ship as a cross-platform package with documentation, MCP support, and Layers.
 
 ## Build
 

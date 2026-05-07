@@ -1,6 +1,6 @@
 # OTE Publishing
 
-This document describes the final publish flow for OTE 1.0.1.
+This document describes the final publish flow for OTE 1.0.2.
 
 ## Goal
 
