@@ -44,6 +44,19 @@ if (WIN32)
     target_link_libraries(ote_core PRIVATE crypt32)
 endif()
 
+if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(ote PRIVATE -static-libgcc -static-libstdc++)
+    get_filename_component(OTE_GNU_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_file(OTE_WINPTHREAD_DLL
+        NAMES libwinpthread-1.dll
+        PATHS "${OTE_GNU_BIN_DIR}"
+        NO_DEFAULT_PATH
+    )
+    if (OTE_WINPTHREAD_DLL)
+        install(FILES "${OTE_WINPTHREAD_DLL}" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
+endif()
+
 include(GNUInstallDirs)
 
 install(TARGETS ote RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
