@@ -45,6 +45,7 @@ public:
     static bool ensure_layout(const std::filesystem::path& root, std::string& error);
     static bool list(const std::filesystem::path& root, std::vector<SecretProjection>& secrets, std::string& error);
     static bool describe(const std::filesystem::path& root, const std::string& name, SecretProjection& secret, std::string& error);
+    static bool load_values(const std::filesystem::path& root, const std::string& name, std::vector<std::pair<std::string, std::string>>& values, std::string& error);
     static bool store(const std::filesystem::path& root, const ISecretProtector& protector, const SecretDraft& draft, std::string& error);
     static bool exists(const std::filesystem::path& root, const std::string& name);
 };

@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ote {
@@ -24,6 +25,7 @@ struct CommandPlan {
     std::string command;
     std::filesystem::path working_directory;
     std::vector<std::string> allowed_env;
+    std::vector<std::pair<std::string, std::string>> extra_env;
     std::string execution_mode;
     bool sandboxed = true;
 };
@@ -32,6 +34,12 @@ struct CommandResult {
     int exit_code = -1;
     std::string output;
     std::string error;
+};
+
+struct CommandAssessment {
+    std::string risk;
+    bool blocked = false;
+    std::vector<std::string> reasons;
 };
 
 class ISecretCatalog {
@@ -58,5 +66,9 @@ public:
     static bool command_within_allowed_paths(const CommandPlan& plan, const std::vector<std::string>& allowed_paths, std::string& error);
     static std::vector<std::string> default_allowed_env();
 };
+
+CommandAssessment assess_command_policy(const CommandPlan& plan);
+std::string command_assessment_json(const CommandAssessment& assessment);
+bool append_audit_entry(const std::filesystem::path& root, const CommandPlan& plan, const CommandAssessment& assessment, const CommandResult& result, std::string& error);
 
 }

@@ -9,3 +9,6 @@ dist/
 *.user
 *.cache
 ote-config.config
+build-gcc
+.env
+__pycache__/

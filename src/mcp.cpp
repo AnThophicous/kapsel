@@ -249,8 +249,9 @@ std::string tool_descriptor_json() {
     out << "{\"name\":\"secret.add\",\"description\":\"Store a protected secret locally\"},";
     out << "{\"name\":\"exec.plan\",\"description\":\"Build a policy-checked execution plan\"},";
     out << "{\"name\":\"exec.run\",\"description\":\"Run a command through the broker\"},";
+    out << "{\"name\":\"policy.check\",\"description\":\"Inspect command risk before execution\"},";
     out << "{\"name\":\"status\",\"description\":\"Show runtime status\"},";
-    out << "{\"name\":\"paths\",\"description\":\"Show local storage paths\"},";
+    out << "{\"name\":\"paths\",\"description\":\"Show local Kapsel paths\"},";
     out << "{\"name\":\"config.show\",\"description\":\"Return the active config\"}";
     out << "]";
     return out.str();
@@ -259,11 +260,11 @@ std::string tool_descriptor_json() {
 std::string resources_json(const std::filesystem::path& root) {
     std::ostringstream out;
     out << "[";
-    out << "{\"uri\":\"ote://status\",\"name\":\"status\",\"mimeType\":\"application/json\"},";
-    out << "{\"uri\":\"ote://paths\",\"name\":\"paths\",\"mimeType\":\"application/json\"},";
-    out << "{\"uri\":\"ote://config\",\"name\":\"config\",\"mimeType\":\"application/json\"},";
-    out << "{\"uri\":\"ote://manifest\",\"name\":\"manifest\",\"mimeType\":\"application/json\"},";
-    out << "{\"uri\":\"ote://root\",\"name\":\"root\",\"mimeType\":\"text/plain\"}";
+    out << "{\"uri\":\"kapsel://status\",\"name\":\"status\",\"mimeType\":\"application/json\"},";
+    out << "{\"uri\":\"kapsel://paths\",\"name\":\"paths\",\"mimeType\":\"application/json\"},";
+    out << "{\"uri\":\"kapsel://config\",\"name\":\"config\",\"mimeType\":\"application/json\"},";
+    out << "{\"uri\":\"kapsel://manifest\",\"name\":\"manifest\",\"mimeType\":\"application/json\"},";
+    out << "{\"uri\":\"kapsel://root\",\"name\":\"root\",\"mimeType\":\"text/plain\"}";
     out << "]";
     (void)root;
     return out.str();
@@ -453,17 +454,32 @@ std::string call_tool(const std::filesystem::path& root, const std::string& tool
             error = "missing command";
             return {};
         }
+        Config config;
+        std::string config_error;
+        (void)ConfigStore::load(root, config, config_error);
         CommandPlan plan;
-        if (!ProcessBroker::build_plan(root, shell, command, plan, error)) {
-            return {};
-        }
+        plan.shell = shell.empty() ? (config.runtime.default_shell.empty() ? default_shell() : config.runtime.default_shell) : shell;
+        plan.command = command;
+        plan.working_directory = root;
+        plan.allowed_env = config.sandbox.allowed_env.empty() ? ProcessBroker::default_allowed_env() : config.sandbox.allowed_env;
+        plan.execution_mode = config.runtime.execution_mode.empty() ? "safe" : config.runtime.execution_mode;
+        plan.sandboxed = true;
+
+        std::string plan_error;
+        const bool plan_valid = ProcessBroker::build_plan(root, shell, command, plan, plan_error);
+        const CommandAssessment assessment = assess_command_policy(plan);
         std::ostringstream out;
         out << "{";
+        out << "\"valid\":" << (plan_valid ? "true" : "false") << ",";
+        if (!plan_valid) {
+            out << "\"error\":" << json_string(plan_error) << ",";
+        }
         out << "\"shell\":" << json_string(plan.shell) << ",";
         out << "\"command\":" << json_string(plan.command) << ",";
         out << "\"execution_mode\":" << json_string(plan.execution_mode) << ",";
         out << "\"sandboxed\":" << (plan.sandboxed ? "true" : "false") << ",";
-        out << "\"allowed_env\":" << to_json_array(plan.allowed_env);
+        out << "\"allowed_env\":" << to_json_array(plan.allowed_env) << ",";
+        out << "\"policy\":" << command_assessment_json(assessment);
         out << "}";
         return out.str();
     }
@@ -500,6 +516,28 @@ std::string call_tool(const std::filesystem::path& root, const std::string& tool
         return out.str();
     }
 
+    if (tool_name == "policy.check") {
+        std::string shell;
+        std::string command;
+        extract_string_field(args_json, "shell", shell);
+        if (!extract_string_field(args_json, "command", command)) {
+            error = "missing command";
+            return {};
+        }
+        Config config;
+        std::string config_error;
+        (void)ConfigStore::load(root, config, config_error);
+        CommandPlan plan;
+        plan.shell = shell.empty() ? (config.runtime.default_shell.empty() ? default_shell() : config.runtime.default_shell) : shell;
+        plan.command = command;
+        plan.working_directory = root;
+        plan.allowed_env = config.sandbox.allowed_env.empty() ? ProcessBroker::default_allowed_env() : config.sandbox.allowed_env;
+        plan.execution_mode = config.runtime.execution_mode.empty() ? "safe" : config.runtime.execution_mode;
+        plan.sandboxed = true;
+
+        return command_assessment_json(assess_command_policy(plan));
+    }
+
     error = "unknown tool";
     return {};
 }
@@ -528,7 +566,7 @@ int run_mcp_server(const std::filesystem::path& root) {
             std::ostringstream result;
             result << "{";
             result << "\"protocolVersion\":\"2024-11-05\",";
-            result << "\"serverInfo\":{\"name\":\"ote\",\"version\":\"1.0.0\"},";
+            result << "\"serverInfo\":{\"name\":\"kapsel\",\"version\":\"1.1.0\"},";
             result << "\"capabilities\":{\"tools\":{},\"resources\":{},\"logging\":{}}";
             result << "}";
             response = make_ok_response(id, result.str());
@@ -561,16 +599,16 @@ int run_mcp_server(const std::filesystem::path& root) {
             std::string uri;
             if (!extract_string_field(params, "uri", uri)) {
                 response = make_error_response(id, -32602, "missing uri");
-            } else if (uri == "ote://status") {
-                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"ote://status\",\"mimeType\":\"application/json\",\"text\":" + json_string(status_snapshot_json(root)) + "}]}");
-            } else if (uri == "ote://paths") {
-                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"ote://paths\",\"mimeType\":\"application/json\",\"text\":" + json_string(paths_snapshot_json(root)) + "}]}");
-            } else if (uri == "ote://config") {
-                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"ote://config\",\"mimeType\":\"application/json\",\"text\":" + json_string(config_snapshot_json(root)) + "}]}");
-            } else if (uri == "ote://manifest") {
-                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"ote://manifest\",\"mimeType\":\"application/json\",\"text\":" + json_string(manifest_snapshot_json(root)) + "}]}");
-            } else if (uri == "ote://root") {
-                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"ote://root\",\"mimeType\":\"text/plain\",\"text\":" + json_string(root.string()) + "}]}");
+            } else if (uri == "kapsel://status") {
+                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"kapsel://status\",\"mimeType\":\"application/json\",\"text\":" + json_string(status_snapshot_json(root)) + "}]}");
+            } else if (uri == "kapsel://paths") {
+                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"kapsel://paths\",\"mimeType\":\"application/json\",\"text\":" + json_string(paths_snapshot_json(root)) + "}]}");
+            } else if (uri == "kapsel://config") {
+                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"kapsel://config\",\"mimeType\":\"application/json\",\"text\":" + json_string(config_snapshot_json(root)) + "}]}");
+            } else if (uri == "kapsel://manifest") {
+                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"kapsel://manifest\",\"mimeType\":\"application/json\",\"text\":" + json_string(manifest_snapshot_json(root)) + "}]}");
+            } else if (uri == "kapsel://root") {
+                response = make_ok_response(id, "{\"contents\":[{\"uri\":\"kapsel://root\",\"mimeType\":\"text/plain\",\"text\":" + json_string(root.string()) + "}]}");
             } else {
                 response = make_error_response(id, -32602, "unknown resource");
             }

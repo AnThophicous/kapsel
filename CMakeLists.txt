@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ote VERSION 1.0.0 LANGUAGES CXX)
+project(kapsel VERSION 1.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,53 +9,65 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(ote_core STATIC
     src/config.cpp
     src/api.cpp
+    src/json.cpp
+    src/layers.cpp
     src/platform.cpp
+    src/terminal.cpp
     src/mcp.cpp
+    src/mcp_client.cpp
     src/runtime.cpp
     src/secret.cpp
 )
 
 target_include_directories(ote_core PUBLIC include)
 
-add_executable(ote
+add_executable(kapsel
     src/app.cpp
     src/main.cpp
 )
 
-target_link_libraries(ote PRIVATE ote_core)
-target_include_directories(ote PRIVATE include)
+target_link_libraries(kapsel PRIVATE ote_core)
+target_include_directories(kapsel PRIVATE include)
 
 if (MSVC)
     target_compile_options(ote_core PRIVATE /W4 /permissive-)
-    target_compile_options(ote PRIVATE /W4 /permissive-)
+    target_compile_options(kapsel PRIVATE /W4 /permissive-)
 else()
     target_compile_options(ote_core PRIVATE -Wall -Wextra -Wpedantic)
-    target_compile_options(ote PRIVATE -Wall -Wextra -Wpedantic)
+    target_compile_options(kapsel PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
 target_compile_definitions(ote_core PRIVATE OTE_VERSION="${PROJECT_VERSION}")
-target_compile_definitions(ote PRIVATE OTE_VERSION="${PROJECT_VERSION}")
+target_compile_definitions(kapsel PRIVATE OTE_VERSION="${PROJECT_VERSION}")
 
 if (WIN32)
     target_link_libraries(ote_core PRIVATE crypt32)
 endif()
 
+if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(kapsel PRIVATE -static-libgcc -static-libstdc++)
+    get_filename_component(OTE_GNU_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_file(OTE_WINPTHREAD_DLL
+        NAMES libwinpthread-1.dll
+        PATHS "${OTE_GNU_BIN_DIR}"
+        NO_DEFAULT_PATH
+    )
+    if (OTE_WINPTHREAD_DLL)
+        install(FILES "${OTE_WINPTHREAD_DLL}" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
+endif()
+
 include(GNUInstallDirs)
 
-install(TARGETS ote RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-install(FILES README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote)
-install(FILES docs/architecture.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote/docs)
-install(FILES docs/security.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote/docs)
-install(FILES docs/mcp.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote/docs)
-install(FILES docs/agent-integration.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote/docs)
-install(FILES docs/release.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote/docs)
-install(FILES CHANGELOG.md DESTINATION ${CMAKE_INSTALL_DATADIR}/ote)
-install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/ote)
-install(FILES ote-config.example.config DESTINATION ${CMAKE_INSTALL_DATADIR}/ote)
+install(TARGETS kapsel RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES README.md DESTINATION ${CMAKE_INSTALL_DATADIR}/kapsel)
+install(FILES ascii.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/kapsel)
+install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/kapsel)
+install(FILES ote-config.example.config DESTINATION ${CMAKE_INSTALL_DATADIR}/kapsel)
 
-set(CPACK_PACKAGE_NAME "ote")
-set(CPACK_PACKAGE_VENDOR "OTE")
+set(CPACK_PACKAGE_NAME "kapsel")
+set(CPACK_PACKAGE_VENDOR "Kapsel")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "One Time Execution secure secret store and runtime")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Kapsel secure secret store and runtime")
 set(CPACK_GENERATOR "ZIP;TGZ")
 include(CPack)
