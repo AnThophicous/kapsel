@@ -542,6 +542,11 @@ Publishing is intentionally simple:
 4. attach the packaged artifacts
 5. attach checksums
 
+## Metrics
+
+Benchmark and validation guidance lives in [Metrics/Kapsel-Metrics-Dry-Run.md](Metrics/Kapsel-Metrics-Dry-Run.md).
+It includes the current dry-run baseline plus a larger test matrix for startup, RAM, MCP, policy, audit, and release packaging.
+
 ## Troubleshooting
 
 ### MCP tools are missing
